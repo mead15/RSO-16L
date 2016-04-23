@@ -1,3 +1,9 @@
+# Efekty kompilacji texa
+dokumentacja/*.txt
+dokumentacja/*.aux
+dokumentacja/*.synctex.gz
+dokumentacja/*.log
+
 # Compiled Object files
 *.slo
 *.lo
