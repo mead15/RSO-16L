@@ -3,6 +3,10 @@ dokumentacja/*.txt
 dokumentacja/*.aux
 dokumentacja/*.synctex.gz
 dokumentacja/*.log
+dokumentacja/tex/*.txt
+dokumentacja/tex/*.aux
+dokumentacja/tex/*.synctex.gz
+dokumentacja/tex/*.log
 
 # Compiled Object files
 *.slo

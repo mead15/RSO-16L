@@ -16,6 +16,7 @@
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{bookman}
+\usepackage{tabto}
 
 \usepackage{geometry}
 \usepackage[utf8x]{inputenc}
@@ -90,7 +91,7 @@
 \newtheorem{case}{Przypadek}
 
 \definecolor{ListingBackground}{rgb}{0.95,0.95,0.95}
-
+%\renewcommand{\familydefault}{\sfdefault} % font
 \begin{document}
 
 % kody źródłowe wplatane w tekst
@@ -176,6 +177,7 @@ framerule=0.1pt,
 
 \input {tex/projekt}
 \input {tex/wymagania}
+\input {tex/architektura}
 \input {tex/docker}
 
 
@@ -193,7 +195,9 @@ framerule=0.1pt,
   \ignorespaces\HeadingText\@@par}
   }
 \makeatother
+\input {tex/tools}
 \input {tex/repo}
+\input {tex/gantt}
 \end{appendices}
 
 \end{document}
