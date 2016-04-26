@@ -1,5 +1,5 @@
 \chapter{Wprowadzenie i instrukcja użytkowania systemu kontroli wersji Git}
-\label{ap:2}
+\label{ap:1}
 
 \section{Wprowadzenie}
 
@@ -12,7 +12,7 @@ Do wspomagania równoległego, rozgałęzionego procesu rozwoju projektu przez w
     \includegraphics[angle=0,scale=0.5]{img/repo.png}
     \end{center}
     \caption{\em Schemat połączeń między repozytoriami Git}
-    \label{fig:client}
+    \label{fig:repo}
 \end{figure}
 
 Następnie zmiany mogą być wymieniane między lokalnymi repozytoriami. Służy do tego repozytorium zewnętrzne (remote repository) działające na serwerze. Serwisem przechowującym rozwijany projekt jest GitHub (\url{https://github.com/}), który udostępnia darmowy hosting open source. 
@@ -21,46 +21,77 @@ Następnie zmiany mogą być wymieniane między lokalnymi repozytoriami. Służy
 Repozytorium projektu jest dostępne pod adresem: \url{https://github.com/Gonz8/RSO-16L}
 
 \section{Przygotowanie do pracy i pierwsze pobranie zawartości repozytorium}
-	Na samym początku wymagane jest posiadanie klienta Git zainstalowanego w swoim systemie. Wszelkie istotne informacje dotyczące korzystania z Git możemy uzyskać wpisując w terminalu:\begin{center} \textit{\$ git help} \end{center}
+	Na samym początku wymagane jest posiadanie klienta Git zainstalowanego w swoim systemie. Wszelkie istotne informacje dotyczące korzystania z Git możemy uzyskać wpisując w terminalu:
+\begin{lstlisting}[style=incode]
+$ git help
+\end{lstlisting}
 Następnie musimy określić własną nazwę oraz adres e-mail w systemie Git:
-\begin{center}\textit{\$ git config --global user.name ''Your Name''}\end{center}
-\begin{center}\textit{\$ git config --global user.email ''address@example.com''} \end{center}
+\begin{lstlisting}[style=incode]
+$ git config --global user.name ''Your Name''
+$ git config --global user.email ''address@example.com''
+\end{lstlisting}
 Aby zaimportować repozytorium ze wspomnianego serwera należy wykonać polecenie:
-\begin{center}\textit{\$ git clone https://github.com/Gonz8/RSO-16L}\end{center}
+\begin{lstlisting}[style=incode]
+$ git clone https://github.com/Gonz8/RSO-16L
+\end{lstlisting}
 Wszystkie pliki zostaną sklonowane do nowo utworzonego katalogu, z poziomu którego należy utworzyć lokalne repozytorium:
-\begin{center}\textit{\$ git init}\end{center}
+\begin{lstlisting}[style=incode]
+$ git init
+\end{lstlisting}
 Utworzone w ten sposób repozytorium jest już powiązane ze zdalną wersją (origin). Możemy to sprawdzić przy użyciu polecenia:
-\begin{center}\textit{\$ git remote -v}\end{center}
+\begin{lstlisting}[style=incode]
+$ git remote -v
+\end{lstlisting}
 
 \section{Użytkowanie}
 
 Po zaimportowaniu projektu oraz utworzeniu lokalnej kopii repozytorium można rozpocząć pracę z danymi. Aby sprawdzić status dokonanych zmian należy użyć w katalogu z kopią roboczą następującego polecenia:
-\begin{center}\textit{\$ git status}\end{center}
+\begin{lstlisting}[style=incode]
+$ git status
+\end{lstlisting}
 Dodanie nowego pliku, kilku plików lub katalogu do kopii roboczej wykonywane jest przy użyciu komendy:
-\begin{center}\textit{\$ git add <filename>}\end{center}
-\begin{center}\textit{\$ git add *}\end{center}
+\begin{lstlisting}[style=incode]
+$ git add <filename>
+$ git add *
+\end{lstlisting}
 Aby zatwierdzić wszelkie dokonane zmiany w lokalnym repozytorium należy użyć polecenia:
-\begin{center}\textit{\$ git commit -a}\end{center}
+\begin{lstlisting}[style=incode]
+$ git commit -a
+\end{lstlisting}
 a następnie podać treść/opis poczynionych zmian.
 W celu przechwycenia najnowszych zmian z serwera wykonujemy polecenie:
-\begin{center}\textit{\$ git fetch origin}\end{center}
-natomiast, aby przechwycić zmiany z serwera i dodatkowo dołączyć je do własnego katalogu roboczego wykonujemy polecenie: 
-\begin{center}\textit{\$ git pull}\end{center}
+\begin{lstlisting}[style=incode]
+$ git fetch origin
+\end{lstlisting}
+natomiast, aby przechwycić zmiany z serwera i dodatkowo dołączyć je do własnego katalogu roboczego wykonujemy polecenie:
+\begin{lstlisting}[style=incode]
+$ git pull
+\end{lstlisting}
 
 Wysłanie zmian poczynionych w wersji lokalnej do zdalnego repozytorium realizowane jest dzięki komendzie:
-\begin{center}\textit{\$ git push origin master}\end{center}
-\begin{center}\textit{\$ git push origin <branchname>}\end{center}
+\begin{lstlisting}[style=incode]
+$ git push origin master
+$ git push origin <branchname>
+\end{lstlisting}
 Git pozwala również na tworzenie, usuwanie i przełączanie się między gałęziami projektu, do wykonania tych operacji służą następujące polecenia:
-\begin{center}\textit{\$ git checkout -b <branchname>}\end{center}
-\begin{center}\textit{\$ git branch -d <branchname>}\end{center}
-\begin{center}\textit{\$ git checkout <branchname>}\end{center}
+\begin{lstlisting}[style=incode]
+$ git checkout -b <branchname>
+$ git branch -d <branchname>
+$ git checkout <branchname>
+\end{lstlisting}
 Wyświetlenie listy wszystkich gałęzi dostępnych w repozytorium możliwe jest poprzez komendę:
-\begin{center}\textit{\$ git branch}\end{center}
+\begin{lstlisting}[style=incode]
+$ git branch
+\end{lstlisting}
 Natomiast w celu dołączenia innej gałęzi do obecnie aktywnej należy wykonać polecenie:
-\begin{center}\textit{\$ git merge <branchname>}\end{center}
+\begin{lstlisting}[style=incode]
+$ git merge <branchname>
+\end{lstlisting}
 
 Ostatnim również istotnym poleceniem jest wyświetlenie historii logów/commit'ów:
-\begin{center}\textit{\$ git log}\end{center}
+\begin{lstlisting}[style=incode]
+$ git log
+\end{lstlisting}
 
 Dodatkowo po zainstalowaniu pakietu \textit{\textbf{gitk}} można wyświetlać graficzną prezentację historii zmian projektu.
 
@@ -69,7 +100,7 @@ Dodatkowo po zainstalowaniu pakietu \textit{\textbf{gitk}} można wyświetlać g
 
 Serwis GitHub świadczy szereg dodatkowych usług wspomagających rozwój projektu programistycznego. Zdecydowano się wykorzystać usługę Wiki, gdzie w łatwy sposób można wprowadzać i modyfikować istotne treści w kontekście projektu. Jest to miejsce, gdzie można w szybki i wygodny sposób odnaleźć uporządkowane informacje. Jednym z odnośników w tej usłudze jest zakładka ''Dobre praktyki kodowania'', gdzie znajdują się wszystkie wspólnie ustalone przez programistów zasady pisania kodu pozwalające utrzymać przejrzystość i spójność kodu.
 
-	Ponadto zdecydowano się uruchomić usługę śledzenia zgłoszeń (tzw. issue tracking) na potrzeby wspierania testowania oprogramowania oraz zgłaszania napotkanych błędów i tworzenia dla nich poprawek.
+	Ponadto zdecydowano się uruchomić usługę śledzenia zgłoszeń (tzw. \textit{issue tracking}) na potrzeby wspierania testowania oprogramowania oraz zgłaszania napotkanych błędów i tworzenia dla nich poprawek.
 
 \section{Przydatne informacje}
 Instrukcja została opracowana na postawie materiałów znalezionych w sieci. Więcej informacji dotyczących użytkowania systemu kontroli wersji Git można znaleźć na stronach:
