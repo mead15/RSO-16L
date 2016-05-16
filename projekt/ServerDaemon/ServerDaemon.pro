@@ -10,11 +10,16 @@ TEMPLATE = app
 SOURCES += \
     main.cpp \
     settings.cpp \
-    securefileuploader.cpp
+    filebooster.cpp \
+    callbacks/fileboostcallback.cpp \
+    remote/remoteprocess.cpp
 
 HEADERS += \
     settings.h \
-    securefileuploader.h
+    filebooster.h \
+    callbacks/fileboostcallback.h \
+    remote/argumentscollector.h \
+    remote/remoteprocess.h
 
 INCLUDEPATH += ../QSsh-master/src/libs/ssh
 include(../QSsh-master/qssh.pri)
