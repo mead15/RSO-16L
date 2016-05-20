@@ -62,6 +62,7 @@ void TcpServer::grabFrame()
     if(socket)
     {
         QString frame(socket->readAll());
+        emit log(" >R: " + frame);
 
         bool nadal = true;
         int pos1=0, pos2=0;
