@@ -21,8 +21,12 @@ TEMPLATE = app
 SOURCES += \
     tcpserver.cpp \
     tester.cpp \
-    comm-test.cpp
+    comm-test.cpp \
+    cipheradapter.cpp \
+    rsaencrypter.cpp
 
 HEADERS += \
     tcpserver.h \
-    tester.h
+    tester.h \
+    cipheradapter.h \
+    rsaencrypter.h
