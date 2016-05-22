@@ -1,0 +1,13 @@
+DBHandler howto:
+
+Najpierw trzeba stworzyć obiekt DBHandler - DBHandler dbh(host, dbname, user, password, port);
+
+Na tak stworzonym obiekcie należy wywołać openDB() - po tym można wykonywać normalne operacje na bazie.
+
+Przydatne funkcje :
+transaction() - tworzy transakcję 
+rollback() - wykonuje rollback z obecnej transakcji pod warunkiem że taka transakcja istnieje
+commit() - kończy transakcję i zapisuje zmiany w bazie
+execQuery() - wykonuje zapytanie podane jako argument wywołania - więcej info w komentarzu w kodzie
+
+Po zakończonej pracy z bazą należy wywołać closeDB().
