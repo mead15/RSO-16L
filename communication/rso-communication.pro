@@ -30,3 +30,4 @@ HEADERS += \
     tester.h \
     cipheradapter.h \
     rsaencrypter.h
+ LIBS += -lcrypto -ldl -lssl
