@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
     //trzeba postawić serwer, podpiąć mu sloty i wystartować
     TcpServer server(2000);
     CipherAdapter sc(3000);
-    tester t2;
-    tester t;
+    tester t2(&sc);
+    tester t(&server);
 
     QObject::connect(&server, SIGNAL(log(QString)), &t, SLOT(log(QString)));
     QObject::connect(&server, SIGNAL(frameContent(QTcpSocket*,QStringList)), &t, SLOT(frame(QTcpSocket*,QStringList)));

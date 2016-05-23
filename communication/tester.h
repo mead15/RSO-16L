@@ -7,13 +7,16 @@
 #include <QTcpSocket>
 #include <iostream>
 #include "tcpserver.h"
+#include "cipheradapter.h"
 
 class tester : public QObject
 {
     Q_OBJECT
 public:
-    explicit tester(QObject *parent = 0);
+    tester(TcpServer* server);
+    tester(CipherAdapter* server);
     TcpServer* server;
+    CipherAdapter* cipher;
 signals:
 
 public slots:
