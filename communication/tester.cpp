@@ -1,7 +1,10 @@
 #include "tester.h"
 
-tester::tester(QObject *parent) :
-    QObject(parent)
+tester::tester(TcpServer* server) : server(server)
+{
+}
+
+tester::tester(CipherAdapter *server) : cipher(server)
 {
 }
 
@@ -13,5 +16,8 @@ void tester::log(QString what)
 void tester::frame(QTcpSocket* socket, QStringList what)
 {
     std::cout << what.join(" / ").toStdString() << std::endl;
-    server->sendFrame(socket, what << "!");
+    if(server)
+        server->sendFrame(socket, what << "!");
+    else
+        cipher->sendFrame(socket, what << "!", "klucz");
 }

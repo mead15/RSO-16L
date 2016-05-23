@@ -37,7 +37,7 @@ void CipherAdapter::catchFrameContent(QTcpSocket *socket, QStringList content)
     //w content siedzi ramka zaszyfrowana przez rsa a potem zakodowana przez base64 (1 element)
     // RsaEncrypter oczekuje ramki zakodowanej, zwróci QStringa z ramką odkodowaną, trzeba ją jeszcze sparsować
 
-    std::cout << "w catchFrame" << std::endl;
+    //std::cout << "w catchFrame" << std::endl;
 
     QString frame(RsaEncrypter::decrypt(content.at(0)));
 
