@@ -42,9 +42,11 @@ class RemoteProcess: public QObject
 {
     Q_OBJECT
 public:
-    RemoteProcess(const QSsh::SshConnectionParameters &params);
+    RemoteProcess(QObject *parent=0);
+    explicit RemoteProcess(QSsh::SshConnectionParameters params, QString action,QObject *parent = 0);
     ~RemoteProcess();
-    void run(const QString action);
+    void run();
+    void setAction(QString action);
 
 private slots:
     void handleConnectionError();
@@ -80,6 +82,7 @@ private:
     QByteArray m_remoteData;
     State m_state;
     bool m_started;
+    QString action;
 };
 
 

@@ -22,29 +22,30 @@
 #include <QtDebug>
 #include <QFileInfo>
 
-FileBooster::FileBooster(const QSsh::SshConnectionParameters &params,QObject *parent) :
-    QObject(parent), m_connection(0)
+FileBooster::FileBooster(QObject *parent): QObject(parent)
 {
-    SSHParams = params;
+    hasParams = false;
 }
 
-void FileBooster::upload(const QString &localFile, const QString &dest)
+
+FileBooster::FileBooster(QSsh::SshConnectionParameters params, QString local, QString remote, QObject *parent) :
+    QObject(parent), m_connection(0)
 {
-    QFileInfo info(localFile);
+    localPath = local;
+    remotePath = remote;
+    SSHParams = params;
+    hasParams = true;
+}
 
+bool FileBooster::ready = false;
+
+void FileBooster::upload()
+{
+
+    QFileInfo info(localPath);
     m_localFilename = info.canonicalFilePath();
-    m_remoteFilename = dest + "/" + info.fileName();
-
-//    QSsh::SshConnectionParameters params;
-//    params.host = host;
-//    params.userName = username;
-//    params.password = passwd;
-//    params.authenticationType = QSsh::SshConnectionParameters::AuthenticationByPassword;
-//    params.timeout = 2000;
-//    params.port = 22;
-
-    m_connection = new QSsh::SshConnection(SSHParams, this); // TODO free this pointer!
-
+    m_remoteFilename = remotePath + "/" + info.fileName();
+    m_connection = new QSsh::SshConnection(SSHParams); // TODO free this pointer!
     connect(m_connection, SIGNAL(connected()), SLOT(onConnected()));
     connect(m_connection, SIGNAL(error(QSsh::SshError)), SLOT(onConnectionError(QSsh::SshError)));
 
@@ -78,6 +79,7 @@ void FileBooster::onConnected()
 void FileBooster::onConnectionError(QSsh::SshError err)
 {
     qDebug() << "SecureUploader: Connection error" << err;
+    callback.OnFailure(QString(err));
 }
 
 void FileBooster::onChannelInitialized()
@@ -98,6 +100,7 @@ void FileBooster::onChannelInitialized()
 void FileBooster::onChannelError(const QString &err)
 {
     qDebug() << "SecureUploader: Error: " << err;
+    FileBooster::ready = true;
 }
 
 void FileBooster::onOpfinished(QSsh::SftpJobId job, const QString &err)
@@ -107,9 +110,16 @@ void FileBooster::onOpfinished(QSsh::SftpJobId job, const QString &err)
     {
         callback.OnSuccess(SSHParams);
     }
+    FileBooster::ready = true;
 }
 
-void FileBooster::setCallBack(FileBoostCallback &cb)
+void FileBooster::setCallBack(FileBoostCallback cb)
 {
     callback = cb;
 }
+
+bool FileBooster::hasInitializedParams()
+{
+    return hasParams;
+}
+

@@ -6,10 +6,12 @@ class FileBoostCallback
 {
 public:
     FileBoostCallback();
+    FileBoostCallback(int &status);
     void OnSuccess(const QSsh::SshConnectionParameters &params);
-    void OnFailure();
+    void OnFailure(QString error);
 private:
-    FileBoostCallback(const FileBoostCallback& that);
+    int* status;
+//    FileBoostCallback(const FileBoostCallback& that);
 };
 
 
