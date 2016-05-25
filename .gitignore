@@ -26,3 +26,4 @@
 *.exe
 *.out
 *.app
+/client/rso-client.pro.user
