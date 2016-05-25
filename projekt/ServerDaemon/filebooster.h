@@ -12,12 +12,14 @@ class FileBooster : public QObject
 {
     Q_OBJECT
 public:
-
-    explicit FileBooster(const QSsh::SshConnectionParameters &params,QObject *parent = 0);
+    FileBooster(QObject *parent=0);
+    explicit FileBooster(QSsh::SshConnectionParameters params, QString local, QString remote, QObject *parent = 0);
 
     /// Uploads \a localFile to \a username@host:/dest using password \a passwd
-    void upload(const QString &localFile, const QString &dest);
-    void setCallBack(FileBoostCallback& cb);
+    void upload();
+    void setCallBack(FileBoostCallback cb);
+    static bool ready;
+    bool hasInitializedParams();
 
 signals:
 
@@ -36,8 +38,10 @@ private:
     QString m_remoteFilename;
     QSsh::SftpChannel::Ptr m_channel;
     QSsh::SshConnection *m_connection;
-
+    QString localPath;
+    QString remotePath;
     void parseDestination(const QString &dest);
+    bool hasParams;
 };
 
 #endif // FILEBOOSTER_H

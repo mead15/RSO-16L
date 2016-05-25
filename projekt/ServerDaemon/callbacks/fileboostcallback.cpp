@@ -2,23 +2,23 @@
 #include "QDebug"
 #include "remote/remoteprocess.h"
 #include "sshconnection.h"
+
 FileBoostCallback::FileBoostCallback()
+{}
+FileBoostCallback::FileBoostCallback(int &status)
 {
+    this->status = &status;
 }
 
 void FileBoostCallback::OnSuccess(const QSsh::SshConnectionParameters &params)
 {
-
+   *status = 1;
     qDebug() << "Success";
-    static RemoteProcess remoteProcess(params);
-    QString action("/home/");
-    action.append(params.userName).append("/server_daemon/ServerDaemon slave");
-    qDebug() << action;
-    remoteProcess.run(action);
 }
 
-void FileBoostCallback::OnFailure()
+void FileBoostCallback::OnFailure(QString error)
 {
-    qDebug() << "Failure";
+    *status = 2;
+    qDebug() << "Failure: " << error;
 }
 

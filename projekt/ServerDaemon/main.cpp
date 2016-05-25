@@ -18,12 +18,16 @@
 #include <QNetworkInterface>
 #include <callbacks/fileboostcallback.h>
 #include "sshconnection.h"
+#include <boostmanager.h>
+#include <remote/remoteprocess.h>
 #define DAEMON_NAME "server_daemon"
 
 
 void showSyntax();
 QString getPassword();
-extern void upload(const QString &orig, const QString &dest, const QString passwd);
+
+
+
 
 extern void process(QString sPath){
     Settings settings(sPath);
@@ -61,6 +65,36 @@ QSsh::SshConnectionParameters getSSHConnectionParams(QString host,QString userna
     params.port = 22;
     return params;
 }
+void initManager(QString orig, QString dest, QString passwd,FileBooster* (&uploader),RemoteProcess* (&process), int *status)
+{
+    // Parse destination with format "username@host:/destination"
+
+    QStringList l1 = dest.split("@");
+
+    if (l1.size() == 2) {
+        QStringList l2 = l1[1].split(":");
+
+        if (l2.size() == 2) {
+            QSsh::SshConnectionParameters params = getSSHConnectionParams( l2[0], l1[0], passwd);
+            uploader = new FileBooster(params,orig, l2[1]);
+
+            QString action ("/home/");
+            action.append(params.userName).append("/server_daemon/ServerDaemon slave");
+            qDebug() << action;
+            process = new RemoteProcess(params,action);
+
+            FileBoostCallback cb(*status);
+            uploader->setCallBack(cb);
+
+        } else {
+            qDebug() << "SecureUploader:  Error invalid parameter " ;//<< dest.toStdString() << std::endl;
+            showSyntax();
+        }
+    } else {
+        qDebug() << "SecureUploader:  Error invalid parameter ";// << dest.toStdString() << std::endl;
+        showSyntax();
+    }
+}
 
 QString getLocalAddress()
 {
@@ -93,80 +127,129 @@ int main(int argc, char *argv[])
     if (args.count() != 2)
     {
 
-        std::cerr << "argument required" << endl << endl;
-        return 1;
+        qDebug() << "argument required";
+        exit(0);
     }
 
     QString arg = args[1];
 
     if(arg != "master" && arg != "slave")
     {
-        std::cerr << "invalid argument" << endl << endl;
-        return 1;
+        qDebug() << "invalid argument";
+        exit(0);
     }
 
     bool propagate = arg == "master";
 
     QString localHostAddress = getLocalAddress();
-    qDebug () << "Localhost: " <<localHostAddress;
+    //qDebug () << "Localhost: " <<localHostAddress;
 
     QString sPath = QCoreApplication::applicationDirPath() + "/settings.ini";
-    //Settings object, based on QSettings. Contains variaables from .ini file
+
+
+    QString logPath = QCoreApplication::applicationDirPath() + "log.txt";
+    QLockFile lock (logPath);
+
+    if(!lock.tryLock())
+    {
+        qDebug() << "App is runnging";
+        exit(0);
+    }
 
     Settings settings(sPath);
     QStringList childGroups = settings.childGroups();
+    BoostManager manager (childGroups.count(),QThread::currentThread());
+
+
+//        FileBooster* boosters [childGroups.count()];
+//        int status [childGroups.count()]; //0 - initialized, 1 - success, 2 - fail, 3 - not initialized (loopback?)
+
+    for (int i = 0; i< childGroups.count(); i++)
+    {
+        manager.status[i] = 0;
+        QString group  = childGroups.at(i);
+        //qDebug() << group;
+        settings.beginGroup(group);
+
+        QStringList childKeys = settings.childKeys();
+
+        QString ip (settings.value("ip").toString());
+
+        if(ip != localHostAddress)
+        {
+            QString name (settings.value("name").toString());
+            QString password (settings.value("password").toString());
+            QString user (settings.value("user").toString());
+            QString userCp (user);
+            QString dest = user.append("@").append(ip).append(":/home/").append(userCp).append("/rso");
+            initManager(sPath, dest, password,manager.boosters[i],manager.processes[i],&manager.status[i]);
+        }
+
+        settings.endGroup();
+    }
+
+    //loop in main trhead, must be
+    for(int i = 0; i<childGroups.count();i ++)
+    {
+        manager.boosters[i]->moveToThread(&manager);
+        //manager.processes[i]->moveToThread(&manager);
+    }
 
     if(propagate)
     {
-        for (int i = 0; i< childGroups.count(); i++)
+        manager.start();
+        while(true)
         {
-            QString group  = childGroups.at(i);
-            //qDebug() << group;
-            settings.beginGroup(group);
-
-            QStringList childKeys = settings.childKeys();
-
-            QString ip (settings.value("ip").toString());
-
-            if(ip != localHostAddress)
+            bool breakLoop = true;
+            for(int i =0; i < childGroups.count();i++)
             {
-                QString name (settings.value("name").toString());
-                QString password (settings.value("password").toString());
-                QString user (settings.value("user").toString());
-                QString userCp (user);
-                QString dest = user.append("@").append(ip).append(":/home/").append(userCp).append("/rso");
-                upload(sPath, dest, password);
+                if(manager.status[i] == 0)
+                    breakLoop = false;
+                qDebug() << "status_" << i <<": " << manager.status[i] << "//0 - initialized, 1 - success, 2 - fail, 3 - not initialized (loopback?)";
+                //0 - status poczatkowy (nie ma znaczenia), 1 - pomyslnie wyslany, 2 - blad podczas wysylania (np. niedostepny), 3 - nie ma Fileboostera (localhost)
             }
-
-            settings.endGroup();
+            if(breakLoop)
+                break;
+            sleep(10);
         }
+        manager.quit();
+        while(!manager.isFinished())
+        {
+            qDebug()<<"Waiting for another thread...";
+            sleep(5);
+            //
+        }
+
+
+        manager.sendCommands();
     }
 
-    setlogmask(LOG_UPTO(LOG_NOTICE));
-    openlog(DAEMON_NAME, LOG_CONS | LOG_NDELAY | LOG_PERROR | LOG_PID, LOG_USER);
 
-    syslog(LOG_INFO, "Entering Daemon");
+//    setlogmask(LOG_UPTO(LOG_NOTICE));
+//    openlog(DAEMON_NAME, LOG_CONS | LOG_NDELAY | LOG_PERROR | LOG_PID, LOG_USER);
 
-    pid_t pid, sid;
+//    syslog(LOG_INFO, "Entering Daemon");
 
-   //Fork the Parent Process
-    pid = fork();
+//    pid_t pid, sid;
 
-    if (pid < 0) { exit(EXIT_FAILURE); }
+//   //Fork the Parent Process
+//    pid = fork();
 
-    //We got a good pid, Close the Parent Process
-    if (pid > 0) { exit(EXIT_SUCCESS); }
+//    if (pid < 0) { exit(EXIT_FAILURE); }
 
-    //Change File Mask
-    umask(0);
+//    //We got a good pid, Close the Parent Process
+//    if (pid > 0) { exit(EXIT_SUCCESS); }
 
-    //Create a new Signature Id for our child
-    sid = setsid();
-    if (sid < 0) { exit(EXIT_FAILURE); }
+//    //Change File Mask
+//    umask(0);
 
-    //Change Directory
-    //If we cant find the directory we exit with failure.
-    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
+//    //Create a new Signature Id for our child
+//    sid = setsid();
+//    if (sid < 0) { exit(EXIT_FAILURE); }
+
+//    //Change Directory
+//    //If we cant find the directory we exit with failure.
+//    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
 
     //Close Standard File Descriptors
 //    close(STDIN_FILENO);
@@ -174,32 +257,8 @@ int main(int argc, char *argv[])
 //    close(STDERR_FILENO);
 
 
-
-
-    //Default path of conf file (app path)
-
-
-
-    QFuture<void> future = QtConcurrent::run(process, sPath);
-
-
-
-    //----------------
-    //Daemon loop
-    //----------------
-//    while(true){
-
-//        process(settings);    //Run our Process
-//        sleep(10);    //Sleep for 10 seconds
-//    }
-
-
-
-
-
-
-    //Close the log
-    closelog ();
+//    QFuture<void> future = QtConcurrent::run(process, sPath);
+ //   closelog ();
 
     return a.exec();
 }
@@ -225,28 +284,3 @@ QString getPassword()
 }
 
 
-extern void upload(const QString &orig, const QString &dest, const QString passwd)
-{
-    // Parse destination with format "username@host:/destination"
-
-    QStringList l1 = dest.split("@");
-
-    if (l1.size() == 2) {
-        QStringList l2 = l1[1].split(":");
-
-        if (l2.size() == 2) {
-            QSsh::SshConnectionParameters params = getSSHConnectionParams( l2[0], l1[0], passwd);
-            static FileBooster uploader(params);
-            FileBoostCallback cb;
-
-            uploader.setCallBack(cb);
-            uploader.upload(orig, l2[1]);
-        } else {
-            qDebug() << "SecureUploader:  Error invalid parameter " ;//<< dest.toStdString() << std::endl;
-            showSyntax();
-        }
-    } else {
-        qDebug() << "SecureUploader:  Error invalid parameter ";// << dest.toStdString() << std::endl;
-        showSyntax();
-    }
-}
