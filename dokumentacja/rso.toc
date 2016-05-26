@@ -11,12 +11,12 @@
 \contentsline {subsection}{\numberline {3.2.2\relax .\kern .5em }Protok\IeC {\'o}\IeC {\l } sp\IeC {\'o}jno\IeC {\'s}ci}{7}{subsection.3.2.2}
 \contentsline {subsection}{\numberline {3.2.3\relax .\kern .5em }Przechowywanie danych}{8}{subsection.3.2.3}
 \contentsline {subsection}{\numberline {3.2.4\relax .\kern .5em }Przetwarzanie danych}{8}{subsection.3.2.4}
-\contentsline {subsection}{\numberline {3.2.5\relax .\kern .5em }Komunikacja}{8}{subsection.3.2.5}
+\contentsline {subsection}{\numberline {3.2.5\relax .\kern .5em }Komunikacja}{9}{subsection.3.2.5}
 \contentsline {subsection}{\numberline {3.2.6\relax .\kern .5em }Przetwarzanie \IeC {\.z}\IeC {\k a}da\IeC {\'n}}{9}{subsection.3.2.6}
 \contentsline {subsection}{\numberline {3.2.7\relax .\kern .5em }Szyfrowanie wiadomo\IeC {\'s}ci}{9}{subsection.3.2.7}
 \contentsline {subsection}{\numberline {3.2.8\relax .\kern .5em }Koordynator warstwy wewn\IeC {\k e}trznej}{9}{subsection.3.2.8}
 \contentsline {subsection}{\numberline {3.2.9\relax .\kern .5em }Algorytm elekcji}{9}{subsection.3.2.9}
-\contentsline {subsection}{\numberline {3.2.10\relax .\kern .5em }Bezpo\IeC {\'s}rednie wstawianie danych}{9}{subsection.3.2.10}
+\contentsline {subsection}{\numberline {3.2.10\relax .\kern .5em }Bezpo\IeC {\'s}rednie wstawianie danych}{10}{subsection.3.2.10}
 \contentsline {subsection}{\numberline {3.2.11\relax .\kern .5em }Dziennik operacji}{10}{subsection.3.2.11}
 \contentsline {section}{\numberline {3.3\relax .\kern .5em }Serwer warstwy zewn\IeC {\k e}trznej}{10}{section.3.3}
 \contentsline {subsection}{\numberline {3.3.1\relax .\kern .5em }Komunikacja}{10}{subsection.3.3.1}
@@ -24,7 +24,7 @@
 \contentsline {subsection}{\numberline {3.3.3\relax .\kern .5em }Przetwarzanie \IeC {\.z}\IeC {\k a}da\IeC {\'n}}{11}{subsection.3.3.3}
 \contentsline {subsection}{\numberline {3.3.4\relax .\kern .5em }Koordynator}{11}{subsection.3.3.4}
 \contentsline {subsection}{\numberline {3.3.5\relax .\kern .5em }Algorytm elekcji}{11}{subsection.3.3.5}
-\contentsline {subsection}{\numberline {3.3.6\relax .\kern .5em }Awaria w\IeC {\k e}z\IeC {\l }a}{11}{subsection.3.3.6}
+\contentsline {subsection}{\numberline {3.3.6\relax .\kern .5em }Awaria w\IeC {\k e}z\IeC {\l }a}{12}{subsection.3.3.6}
 \contentsline {subsection}{\numberline {3.3.7\relax .\kern .5em }Przerwanie po\IeC {\l }\IeC {\k a}czenia mi\IeC {\k e}dzy w\IeC {\k e}z\IeC {\l }ami}{12}{subsection.3.3.7}
 \contentsline {subsection}{\numberline {3.3.8\relax .\kern .5em }Dziennik operacji}{12}{subsection.3.3.8}
 \contentsline {section}{\numberline {3.4\relax .\kern .5em }Aplikacja kliencka}{12}{section.3.4}

@@ -17,7 +17,7 @@ System po stronie serwerowej składa się z dwóch warstw: wewnętrznej i zewnę
 
 \begin{figure}[!h]
     \begin{center}
-    \includegraphics[angle=0,scale=0.5]{img/data_serv.png}
+    \includegraphics[angle=0,scale=0.6]{img/data_serv.png}
     \end{center}
     \caption{\em Schemat serwera bazy danych}
     \label{fig:db}
@@ -36,7 +36,7 @@ Gdy po awarii, jeden z serwerów danych połączy się ponownie, musi zaktualizo
 
 \begin{figure}[!h]
     \begin{center}
-    \includegraphics[angle=0,scale=0.6]{img/dbschema.png}
+    \includegraphics[angle=0,scale=0.7]{img/dbschema.png}
     \end{center}
     \caption{\em Schemat bazy danych}
     \label{fig:db_schema}
@@ -621,10 +621,10 @@ Koordynator warstwy zewnętrznej co jakiś czas odpytuje dowolny serwer danych
 Każde zapytanie może się też nie udać, należy wtedy zwrócić błąd:
 \begin{itemize}
 \item (<nr nadawcy>, ERROR, <kod błędu>) w przypadku komunikacji serwer-serwer
-\item (ERROR, <kod błędu>) w przypadku komunikacji klient-serwer
+\item (ERROR, <kod błędu>) w przypadku komunikacji klient-serwer\newline
 \end{itemize}
 
-Lista błędów:
+\textbf{Lista błędów}:
 \begin{itemize}
 \item HOST\_OVERLOADED – system obsługuje maksymalną liczbę użytkowników, nie jest możliwe zrealizowanie żądania
 \item ENCRYPTION\_ERROR – węzeł nie może odszyfrować otrzymanej wiadomości
