@@ -18,8 +18,11 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     QObject::connect(clientPortListener, SIGNAL(log(QString)), this, SLOT(log(QString)));
     QObject::connect(clientPortListener, SIGNAL(frameContent(QTcpSocket*,QStringList)), this, SLOT(frameClientRecived(QTcpSocket*,QStringList)));
 
-    extFunctionMap[FrameType::STATUS] = &dbServer::status;
-    extFunctionMap[FrameType::SERVER_STATUS_OK] = &dbServer::statusOK;
+    dbFunctionMap[FrameType::STATUS] = &dbServer::status;
+    dbFunctionMap[FrameType::SERVER_STATUS_OK] = &dbServer::statusOK;
+    dbFunctionMap[FrameType::ACTIVE_SERVERS_DB] = &dbServer::activeServersDB;
+
+    extFunctionMap[FrameType::GET_ACTIVE_SERVERS_DB] = &dbServer::getActiveServersDB;
 }
 
 void dbServer::start(){
@@ -103,9 +106,14 @@ void dbServer::frameExtRecivedError(QString error, QString ip){
 }
 
 void dbServer::frameDBRecivedError(QString error, QString ip){
-    //find num by ip
-    // set as unactive
-    // send state if changed
+    QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+    for (auto i = servers.begin(); i!=servers.end(); i++){
+        if(i.value().getIp()==ip && i.value().isActive()){
+            Configuration::getInstance().setServerActive(i.key(), false);
+            this->sendDBStateToAll();
+            return;
+        }
+    }
 }
 
 void dbServer::frameClientRecivedError(QString error, QString ip){
@@ -222,10 +230,23 @@ void dbServer::unlink(Request& r, int sender){
 }
 
 void dbServer::getActiveServersDB(Request& r, int sender){
-
+    QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+    QStringList result;
+    for (auto i = servers.begin(); i!=servers.end(); i++){
+        if(i.value().isActive())
+            result<<QString::number(i.key());
+    }
+    extPortListener->sendFrame(r.socket, makeFrame(FrameType::ACTIVE_SERVERS_DB, result), Configuration::getInstance().getExtServer(sender).getPubKey());
 }
 
 void dbServer::activeServersDB(Request& r, int sender){
+    QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+    for (auto i = servers.begin(); i!=servers.end(); i++){
+        if(r.msg.contains(QString::number(i.key())))
+            Configuration::getInstance().setServerActive(i.key(), true);
+        else
+            Configuration::getInstance().setServerActive(i.key(), false);
+    }
 
 }
 
