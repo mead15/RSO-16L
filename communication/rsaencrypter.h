@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #define KEY_LENGTH  2048
 #define PADDING RSA_PKCS1_PADDING
@@ -23,6 +24,7 @@ public:
     static QString encrypt(QString data, QString key);
     static QString decrypt(QString data);
     static void setPrivateKey(QString key);
+    static void loadPrivateKey(QString &path);
 private:
     static RSA* privateKey;
     static RSA* loadPUBLICKeyFromString( const char* publicKeyStr );

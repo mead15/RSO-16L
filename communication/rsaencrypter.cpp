@@ -96,3 +96,12 @@ RSA* RsaEncrypter::loadPRIVATEKeyFromString( const char* privateKeyStr )
   BIO_free( bio ) ;
   return rsaPrivKey ;
 }
+
+void RsaEncrypter::loadPrivateKey(QString& path){
+    FILE * fp;
+    fp = fopen (path.toLocal8Bit().data() , "r");
+    RSA* rsaPrivKey = PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);
+    if ( !rsaPrivKey )
+      std::cout<<"ERROR: Could not load PRIVATE KEY!  PEM_read_bio_RSAPrivateKey FAILED: %s\n"<<ERR_error_string(ERR_get_error(), NULL)<<std::endl;
+    privateKey = rsaPrivKey;
+}
