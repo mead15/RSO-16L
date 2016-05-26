@@ -1,4 +1,4 @@
-\chapter{Architektura}
+\chapter{Architektura i opis systemu}
 
 \section{Opis ogólny architektury systemu}
 
@@ -11,57 +11,664 @@
 \end{figure}
 
 
-System po stronie serwerowej składa się z dwóch warstw. Wewnętrznej, która przechowuje wrażliwe informacje medyczne i zewnętrznej udostępniającej informację oprogramowaniu klienckiemu. Część wewnętrzną stanowi system rozproszonej bazy danych, a część zewnętrzną klaster serwerów.
+System po stronie serwerowej składa się z dwóch warstw: wewnętrznej i zewnętrznej. Warstwa wewnętrzna przechowuje wrażliwe informacje medyczne oraz je przetwarza. Przetwarzanie polega na anonimizacji wyników badań medycznych oraz tworzeniu statystyk. Warstwa zewnętrzna zajmuje się dystrybucją danych dla klientów. Część kliencka jest prostą aplikacją dostępową korzystającą z API serwerów warstwy zewnętrznej. W projekcie założono, że do realizacji systemu wykorzystane zostaną dwa serwery danych i trzy serwery warstwy zewnętrznej. Ogólny schemat systemu został przedstawiony na rysunku \ref{fig:arch}.
 
-\section{Baza danych}
+\section{Serwer danych}
 
 \begin{figure}[!h]
     \begin{center}
-    \includegraphics[angle=0,scale=0.75]{img/db.png}
+    \includegraphics[angle=0,scale=0.5]{img/data_serv.png}
     \end{center}
     \caption{\em Schemat serwera bazy danych}
     \label{fig:db}
 \end{figure}
 
-Zastosowanie prostej replikacji całego serwera danych. Poziom redundancji danych jest równy ilości serwerów danych. Zrealizowany zostanie model spójności sekwencyjnej. Każda zmiana w dowolnej bazie bazie powoduje rozpropagowanie jej na pozostałe serwery danych.
-W projekcie przewidziane są dwa serwery danych, co daje redundancję równą 2.
+Serwer danych ma za zadnie przechowywać informacje w bazie danych, przetwarzać informacje, udostępniać przetworzone informacje, udostępniać API do bezpośredniego wstawienia informacji oraz komunikować się z innymi serwerami danych w celu realizacji redundancji danych, zachowania spójności danych i współbieżnego realizowania zapytań. Schemat serwera danych przedstawiono na rysunku \ref{fig:db}.
 
-Komunikacja z serwerami odbywa się przez tcp/ip. W komunikacji pośredniczy moduł komunikacyjny, który oczekuje na zapytania. Każde zapytanie jest obsługiwane w oddzielnym wątku. Zapytania są kolejkowanie lub odrzucane, gdy zapytań będzie za dużo. Komunikacja jest szyfrowana przy pomocy RSA.
+\subsection{Redundancja danych}
+Aby zapewnić redundancję danych zastosowano prostą replikację całego serwera. W systemie poziom redundancji jest równy liczbie serwerów danych. W projekcie będzie on równy 2.
+\subsection{Protokół spójności}
+Zrealizowany zostanie model spójności sekwencyjnej. To oznacza, że dozwolony jest każdy przeplot operacji czytania i pisania ale wszystkie procesy, na wszystkich maszynach oglądają ten sam przeplot operacji. Zostanie on zapewniony m.in. przez rozsyłanie każdej zmiany w bazie do drugiego serwera. Zapis może odbywać się równolegle na dwóch serwerach. Może zdarzyć się sytuacja, w której na skutek modyfikacji tego samego rekordu w bazie jednocześnie na dwóch serwerach, dwie różne zmiany zostaną rozpropagowane w tym samym czasie i pojawi się niespójność. Aby temu zapobiec zastosowano algorytm Lamporta dostrajania lokalnych zegarów. Każdy komunikat otrzymuje znacznik czasu, zgodny z lokalnym zegarem. Jeżeli po nadejściu komunikatu zegar odbiorcy pokazuje wartość wcześniejszą, niż czas w komunikacie to odbiorca przesuwa swój zegar w przód, tak aby wskazywał wartość czasu o 1 większą niż czas nadania. Komunikaty są umieszczane w lokalnej kolejce zgodnie z jego znacznikiem czasu. Zakłada się również, że nadawca komunikatu jest również jego odbiorcą. Ta metoda zapewnia, że wszystkie procesy będą miały ta samą kopię kolejki zapasowej.
 
+Gdy po awarii, jeden z serwerów danych połączy się ponownie, musi zaktualizować swoje dane. W tym celu można zapisywać wszystkie zmiany w bazie danych. Nowo doleczony serwer sprawdziłby jaką ostatnią operację wykonywał, a następnie wysłał do mastera prośbę o odesłanie wszystkich późniejszych operacji. Tego rozwiązania nie będzie w opisywanym systemie ze względu krotki czas realizacji projektu.
 
-\section{Serwer}
+\subsection{Przechowywanie danych}
 
 \begin{figure}[!h]
     \begin{center}
-    \includegraphics[angle=0,scale=0.6]{img/serv.png}
+    \includegraphics[angle=0,scale=0.6]{img/dbschema.png}
+    \end{center}
+    \caption{\em Schemat bazy danych}
+    \label{fig:db_schema}
+\end{figure}
+
+Dane są przechowywane w bazie danych PostgreSQL, a wyniki badań medycznych w plikach, których ścieżki są zapisane w bazie danych. Schemat bazy danych przedstawiono na \ref{fig:db_schema}. Na potrzeby projektu przyjęto, że format przechowywanych wyników badań to .xml dla wyników w formie tekstowej lub .bmp dla wyników w formie zdjęć.
+
+
+\subsection{Przetwarzanie danych}
+
+Przetwarzanie danych obejmuje anonimizację wyników danych medycznych i tworzenie statystyk. Anonimizacja danych w formacie .xml polega na usunięciu nazwiska pacjenta z pliku. Danych w formacie .bmp nie trzeba anonimizować, ponieważ samo zdjęcie nie wskazuje na konkretnego pacjenta. Dostępne statystyki badań będą pokazywały liczbę wykonanych badań w zależności od czasu, kraju, płci, wieku itp.
+Przykładowy plik .xml z wynikiem badań:
+\begin{lstlisting}[style=incode]
+<examination>
+    <patient>
+        <first_name>Jan</first_name>
+        <last_name>Kowalski</last_name>
+    </patient>
+    <examination_type>morfologia</examination_type>
+    <result>
+    </result>
+</examination>
+\end{lstlisting}
+
+
+\subsection{Komunikacja}
+Komunikacja z serwerami warstwy zewnętrznej i serwerami danych odbywa się przez TCP/IP. W komunikacji pośredniczy moduł komunikacyjny, który oczekuje na zapytania. W serwerze danych znajdują się trzy moduły komunikacyjne (dla serwerów warstwy zewnętrznej, dla serwerów danych i pomocniczy do wstawiania danych). Każdy nasłuchuje na oddzielnym porcie. Numery portów znajdują się w pliku konfiguracyjnym. 
+
+\subsection{Przetwarzanie żądań}
+Każde zapytanie jest obsługiwane w oddzielnym wątku. Serwer korzysta z puli wątków. ich liczba jest określona w pliku konfiguracyjnym. Powinna być równa liczbie wątków sprzętowych, co zapewni efektywne wykorzystanie procesora. Zapytania przychodzące z warstwy zewnętrznej lub wewnętrznej są kolejkowane w kolejności przyjścia lub odrzucane, gdy zapytań będzie za dużo (kolejka FIFO). Maksymalny rozmiar kolejki jest określony w pliku konfiguracyjnym. Żądania dotyczące modyfikacji są dodatkowo kolejkowane zgodnie z ich znacznikami czasu. Wątki realizują na zmianę, raz zapytania z kolejki modyfikacji, raz z kolejki zapytań.
+
+\subsection{Szyfrowanie wiadomości}
+Komunikacja jest szyfrowana przy pomocy RSA. Każdy z serwerów dostanie wygenerowany klucz publiczny oraz prywatny. Klucze publiczne wszystkich serwerów oraz serwerów danych są zapisane w pliku konfiguracyjnym. Wysłanie wiadomości będzie wymagało zaszyfrowania jej kluczem publicznym odbiorcy i tylko on będzie mógł ją odszyfrować swoim kluczem prywatnym. Jest to konieczne aby zachować bezpieczeństwo przesyłania wrażliwych danych między serwerami danych. Zapewni również to, że niepowołany węzeł w warstwie wewnętrznej lub zewnętrznej, jeżeli dostanie informację, nie będzie w stanie jej odszyfrować.
+
+\subsection{Koordynator warstwy wewnętrznej}
+Jeden z serwerów danych będzie koordynatorem. Koordynator kontroluje pracę pozostałych serwerów, sprawdza, czy wszystkie są dostępne, tworzy i rozsyła do wszystkich węzłów tablicę aktywności serwerów danych. Sprawdzanie obecności serwerów odbywa się poprzez cykliczne odpytywanie. Okres odpytywania jest zawarty w pliku konfiguracyjnym. Stan warstwy wewnętrznej jest wysyłany tylko wtedy gdy się zmieni, np. jeden z serwerów ulegnie awarii. Informacja ta jest zapisywana w pamięci RAM w przeznaczonej do tego klasie.
+
+\subsection{Algorytm elekcji}
+Gdy master ulegnie awarii jego rolę przejmuje inny serwer. W projekcie przewidziano dwa serwery danych, więc serwer który zauważy brak mastera powinien od razu przejąć jego rolę. Jednakże, rozwiązanie powinno być skalowalne więc do elekcji zastosowany zostanie algorytm Tyrana. Został on szczegółowo opisany w następnym podrozdziale dotyczącym serwerów warstwy zewnętrznej.
+
+\subsection{Bezpośrednie wstawianie danych}
+Dodatkowo na potrzeby projektu serwery danych udostępnią API do bezpośredniego zapisu danych.
+
+\subsection{Dziennik operacji}
+Prowadzony jest dziennik operacji wykonywanych na serwerze danych. Ma on formę pliku tekstowego, w którym zapisywane są przeprowadzane operacje na danych, informacje o błędach, utracie węzła, dołączeniu węzła oraz zmianie koordynatora.
+
+
+\section{Serwer warstwy zewnętrznej}
+
+\begin{figure}[!h]
+    \begin{center}
+    \includegraphics[angle=0,scale=0.5]{img/ext_serv.png}
     \end{center}
     \caption{\em Schemat serwera aplikacyjnego}
     \label{fig:serv}
 \end{figure}
 
-Serwer odbiera zapytania od klienta i pobiera dane z bazy. W tym celu nasłuchuje w oczekiwaniu na połączenie od klienta. Komunikacja klient-serwer odbywa się przez tcp/ip. Po odebraniu żądania, tworzony jest nowy wątek, który realizuje zapytanie, komunikuje się z bazą danych oraz formułuje odpowiedź. Serwer może obsłuzyć ograniczoną liczbę klientów. Nadamiarowe zapytania może przekazać innym serwerom, a jeżeli wszystkie są zajęte to wstawia do kolejki oczekujących zapytań lub odsyła odpowiedni komunikat, jeżeli w kolejce nie ma miejsc.
-Zadaniem serwera jest też autoryzacja łączącego się klienta, sprawdzenie jego uprawnień. Autoryzacja i uwierzytelnienie odbywa się przez podanie loginu i hasła. Gdy serwer dostanie zapytanie od niezalogowanego klienta odsyła prośbę o login i hasło. Po autoryzacji klient jest zapisywany w tablicy aktywnych klientów w cachu, następnie serwer generuje, zapisuje i wysyła token, który będzie służył do uwierzytelniania przy kolejnych żądaniach aż do momentu wylogowania lub gdy użytkownik przez określony czas będzie nieaktywny. Dane o aktywnych klientach nie są przechowywane na wszystkich węzłach, więc jeżeli jeden z nich ulegnie awarii konieczna będzie ponowna autoryzacja i uwierzytelnienie na innym węźle.
-Jeden z serwerów jest koordynatorem. Koordynator kontroluje pracę pozostałych serwerów, sprawdza, czy wszystkie są dostępne, autoryzuje nowy węzeł, który chce się połączyć. Tworzy i rozsyła do wszystkich węzłów tablicę aktywności serwerów oraz serwerów danych. Sprawdzanie obecności serwerów odbywa się poprzez cykliczne odpytywanie.
-Gdy master ulegnie awarii jego rolę przejmuje inny z serwerów.
-Wszystkie serwery znają liczbę i adresy pozostałych. Każdy z serwerów ma przyporządkowany numer. Masterem staje się ten o najniższym numerze. Pierwszy serwer, który zauważy, że nie ma mastera wysyła komunikat do wszystkich węzłów o niższym numerze, jeżeli nikt nie odpowie to serwer staje się nowym koordynatorem i wysyła do wszystkich pozostałych węzłów informujący komunikat. Jeżeli któryś z węzłów o niższym numerze odpowie to on przejmuje kontrolę. Brak koordynatora będzie zauważony, gdy węzeł nie zostanie odpytany w odpowiednim czasie.
+Serwery warstwy zewnętrznej przekazują zapytania od klienta do serwera danych i przesyłają już przetworzone dane klientowi. Ich rolą jest również komunikowanie się z innymi serwerami warstwy zewnętrznej w celu współbieżnej realizacji żądań i realizacji odporności systemu na awarie węzłów. Schemat serwera warstwy zewnętrznej przedstawia rysunek \ref{fig:serv}.
 
-\subsection{Autoryzacja węzłów}
-Każdy węzeł posiada nazwę oraz numer. Aby dołączyć się do klastra serwerów musi wysłać masterowi numer oraz swoją nazwę zaszyfrowaną kluczem publicznym mastera. W odpowiedzi dostaje potwierdzenie i aktualny stan systemu, aby zaktualizować listę aktywnych serwerów.  Klucze publiczne są zapisywane w plikach konfiguracyjnych serwera i klienta.
+\subsection{Komunikacja}
+Komunikacja z klientem i serwerami danych odbywa się przez TCP/IP. W komunikacji pośredniczą moduły komunikacyjne, który oczekują na zapytania. W serwerze danych znajdują się trzy moduły komunikacyjne (dla serwerów warstwy zewnętrznej, dla serwerów danych i klienta). Każdy nasłuchuje na oddzielnym porcie. Numery portów znajdują się w pliku konfiguracyjnym. 
+
+Serwer może wysyłać zapytania do dowolnego serwera danych. Jeżeli któryś z nich będzie niedostępny próbuje połączyć się z kolejnym z listy zawartej w pliku konfiguracyjnym.
+
+\subsection{Szyfrowanie danych}
+Komunikacja między serwerami warstwy zewnętrznej oraz między serwerem warstwy zewnętrznej, a serwerem danych jest szyfrowana przy użyciu RSA. Dzięki temu niepowołane węzeł nie będzie w stanie rozszyfrować żadnych informacji. Komunikacja z klientem nie jest szyfrowana, nie jest to konieczne, gdyż przesyłane w tym obszarze informacje nie są już wrażliwe.
+
+\subsection{Przetwarzanie żądań}
+Serwer korzysta z puli wątków. ich liczba jest określona w pliku konfiguracyjnym i powinna być równa liczbie wątków sprzętowych. Po odebraniu żądania od klienta lub innego węzła, wstawiane jest ono do kolejki zapytań (kolejka FIFO). Długość kolejki jest odczytywana z pliku konfiguracyjnego.
+
+\subsection{Koordynator}
+Jeden z serwerów jest koordynatorem. Koordynator kontroluje pracę pozostałych serwerów, sprawdza, czy wszystkie są dostępne. Tworzy i rozsyła do wszystkich węzłów tablicę aktywności serwerów. Sprawdzanie obecności serwerów odbywa się poprzez cykliczne odpytywanie. Odpytywany jest też jeden z serwerów danych o aktualny stan warstwy wewnętrznej. Okres odpytywania jest zawarty w pliku konfiguracyjnym. Stan całego systemu jest wysyłany tylko wtedy gdy się zmieni, np. jeden z serwerów ulegnie awarii. Informacja ta jest zapisywana w pamięci RAM w przeznaczonej do tego klasie.
+
+\subsection{Algorytm elekcji}
+Gdy master ulegnie awarii jego rolę przejmuje inny z serwerów. W projekcie zastosowano algorytm Tyrana.
+Wszystkie serwery znają liczbę i adresy pozostałych. Każdy z serwerów ma przyporządkowany numer. Masterem staje się ten o najniższym numerze. Pierwszy serwer, który zauważy, że nie ma mastera, czeka losowy czas i wysyła komunikat \textbf{ELECTION} do wszystkich węzłów o niższym numerze, jeżeli nikt nie odpowie to serwer staje się nowym koordynatorem i wysyła do wszystkich pozostałych węzłów informujący komunikat \textbf{COORDINATOR}. Jeżeli któryś z węzłów o niższym numerze odpowie to on przejmuje kontrolę. Brak koordynatora będzie zauważony, gdy węzeł nie zostanie odpytany w odpowiednim czasie. Dodanie losowego czasu po zauważeniu braku mastera zapobiegnie sytuacji, gdy kilka serwerów jednocześnie wyśle wiadomość \textbf{ELECTION}.
+
+\subsection{Awaria węzła}
+Awaria węzła zostanie wykryta, podczas cyklicznego odpytywania przez koordynatora. Nieaktywny serwer nie odpowie, więc koordynator zaktualizuje stan systemu i roześle do pozostałych węzłów. Gdy serwer będzie znów dostępny, przy najbliższym odpytywaniu, zostanie zauważony przez koordynatora, który ponownie zaktualizuje stan systemu.
+
+\subsection{Przerwanie połączenia między węzłami}
+Może pojawić się sytuacja, gdy przerwane zostanie połączenie między dwoma poprawnie pracującymi serwerami. Wtedy każdy z nich przeprowadzi elekcję oddzielnie. Powstaną dwa klastry serwerów, ale wszystko będzie poprawnie pracowało. Gdy połączenie wróci, w warstwie zewnętrznej będzie dwóch koordynatorów. W celu rozwiązania tego problemu, pierwszy koordynator, który zostanie odpytany przez drugiego wyłącza u siebie funkcję koordynatora.
+
+\subsection{Dziennik operacji}
+Prowadzony jest dziennik operacji wykonywanych na serwerze danych. Ma on formę pliku tekstowego, w którym zapisywane są informacje o błędach, utracie węzła, dołączeniu węzła i zmianie koordynatora.
+
 
 \section{Aplikacja kliencka}
 
 \begin{figure}[!h]
     \begin{center}
-    \includegraphics[angle=0,scale=0.8]{img/client.png}
+    \includegraphics[angle=0,scale=0.5]{img/client.png}
     \end{center}
     \caption{\em Schemat aplikacji klienckiej}
     \label{fig:client}
 \end{figure}
 
-Zadaniem aplikacji klienckiej jest nawiązanie połączenia z jednym z serwerów. Adresy serwerów są określone w pliku konfiguracyjnym. Jeżeli połączenie z jednym z węzłów zakończy się niepowodzeniem, następuje próba połączenia się z kolejnymi. Aplikacja umożliwia zalogowanie się i dostęp do funkcji oferowanych przez API serwera. Jeżeli jakieś żądanie się nie powiedzie pomimo dostępności serwera, następuje ponowna próba, wysłania żądania ale do innego serwera.
-Klient musi aktualizować listę serwerów poprzez cykliczne odpytywanie.
+Aplikacja kliencka wysyła polecenia od użytkownika do serwerów warstwy zewnętrznej i wyświetla ich wynik lub zapisuje pobrane dane. Schemat aplikacji klienckiej przedstawiono na rysunku \ref{fig:client}.
 
+\subsection{Komunikacja}
+Komunikacja między klientem, a serwerem warstwy zewnętrznej odbywa się przez TCP/IP. Początkowo w pliku konfiguracyjnym klienta jest adres jednego serwera. Aplikacja próbuje nawiązać z nim połączenie. Jeżeli to połączenie zakończy się niepowodzeniem aplikacja kończy działanie. W przeciwnym wypadku klient pobiera informację o dostępnych serwerach. Uzupełnia tą informacją plik konfiguracyjny. Dzięki temu przy następnym uruchomieniu, gdy któryś z serwerów będzie niedostępny, nastąpi próba połączenia z innym.
+
+\subsection{Szyfrowanie}
+Komunikacja od serwera do klienta nie jest szyfrowana. Nie jest to konieczne, ponieważ przekazywane dane nie wymagają już ochrony.
+
+\subsection{Funkcjonalność}
+Aplikacja umożliwia dostęp do funkcji oferowanych przez API serwera, co oznacza wyświetlenie wyniku zapytania lub pobranie pliku z wynikiem danych medycznych. Dostępne zapytania są opisane w rozdziale dotyczącym protokołu komunikacyjnego. Jeżeli jakieś żądanie się nie powiedzie mimo dostępności serwera (z powodu przeciążenia), następuje ponowna próba wysłania żądania ale do innego serwera.
+Aplikacja kliencka jest aplikacją konsolową, nieinteraktywną, co oznacza, że wykonywane jest jedno zapytanie, zwracany jest wynik i następuje zakończenie działania.
 \section{Plik konfiguracyjny}
 
-W pliku konfiguracyjnym klienta znajdują się adresy, porty i nazwy serwerów oraz ich klucze publiczne.
-W pliku konfiguracyjnym serwerów znajdują się adresy, porty i nazwy serwerów, adresy serwerów baz danych, maksymalna liczba jednocześnie obsłużonych wątków, okres odpytywania węzłów przez serwer główny, czas trwania sesji z klientem, klucze publiczne serwerów.
+W pliku konfiguracyjnym klienta na początku znajduje się adres i port jednego z serwerów.
+W pliku konfiguracyjnym serwerów znajdują się adresy, porty i nazwy serwerów, adresy serwerów baz danych, liczba wątków w puli, liczba zapytań w kolejce, okres odpytywania węzłów przez serwer główny, klucze publiczne serwerów.
+Plik konfiguracyjny zostanie zapisany w formacie .ini.
+Każdy serwer ma unikalny numer i typ. Typ może mieć wartość 'srv' dla serwerów warstwy zewnętrznej lub 'db' dla serwerów warstwy wewnętrznej.
+
+Przykładowy plik konfiguracyjny dla klienta:
+\begin{lstlisting}[style=incode, caption=Plik konfiguracyjny klienta]
+[settings]
+servers_number = 1
+
+[serwer1]
+ip=192.168.1.130
+port=4000
+key=AAAAB3NzaC1yc2EAAAABiwAAAQEAklOUpkDHrfHY17SbrmTipNLTGK9Tjom/BWDSUGPl+nafzl
+HDTYW7hdi4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3Pbv7kOdJ/MtyBl
+WXFCR+Hao3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XAt3FaoJoAsncM1Q9x5+3
+V0Ww68/eiFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/EnmZ+AW4OZPnTPi89ZPmVMLuay
+rD2cE86Z/il8b+gw3r3+1nKatmikjn2so1d01QraTlMqVSsbxNrRFi9wrf+M7Q==
+\end{lstlisting}
+
+Przykładowy plik konfiguracyjny dla serwera lub serwera danych:
+\begin{lstlisting}[style=incode, caption=Plik konfiguracyjny serwera]
+[settings]
+threads_num = 4 ; liczba watkow puli
+queue_size = 20 ; rozmiar kolejki
+servers_number = 3 ; liczba serwerow warstwy zewnetrznej
+servers_DB_number = 2 ; liczba serwerow warstwy wewnetrznej
+
+
+[master_settings]
+interval = 60 ; okres odpytywania wezlow w sekundach
+
+[serwer1]
+type=srv ; typ serwera
+ip=192.168.1.130 ; adres ip serwera
+portExt=2000 ; port do komunikacji z serwerami warstwy zewnetrznej
+portDB=3000 ; port do komunikacji z serwerami danych
+portClient=4000 ; port do komunikacji z klientami
+key=AAAAB3NzaC1yc2EAAAABiwAAAQEAklOUpkDHrfHY17SbrmTipNLTGK9Tjom/BWDSUGPl+nafzl
+HDTYW7hdi4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3Pbv7kOdJ/MtyBl
+WXFCR+Hao3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XAt3FaoJoAsncM1Q9x5+3
+V0Ww68/eiFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/EnmZ+AW4OZPnTPi89ZPmVMLuay
+rD2cE86Z/il8b+gw3r3+1nKatmikjn2so1d01QraTlMqVSsbxNrRFi9wrf+M7Q== 
+; klucz publiczny
+
+[serwer2]
+ip=192.168.1.131
+type=srv
+portExt=2000
+portDB=3000
+portClient=4000
+key=AAAAB3NzaC1yc2EAAAABiwAAAQEAklOUpkDHrfHY17SbrmTipNLTGK9Tjom/BWDSUGPl+nafzl
+HDTYW7hdi4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3Pbv7kOdJ/MtyBl
+WXFCR+Hao3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XAt3FaoJoAsncM1Q9x5+3
+V0Ww68/eiFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/EnmZ+AW4OZPnTPi89ZPmVMLuay
+rD2cE86Z/il8b+gw3r3+1nKatmikjn2so1d01QraTlMqVSsbxNrRFi9wrf+M7Q==
+
+[serwer3]
+ip=192.168.1.132
+type=srv
+portExt=2000
+portDB=3000
+portClient=4000
+key=AAAAB3NzaC1yc2EAAAABiwAAAQEAklOUpkDHrfHY17SbrmTipNLTGK9Tjom/BWDSUGPl+nafzl
+HDTYW7hdi4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3Pbv7kOdJ/MtyBl
+WXFCR+Hao3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XAt3FaoJoAsncM1Q9x5+3
+V0Ww68/eiFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/EnmZ+AW4OZPnTPi89ZPmVMLuay
+rD2cE86Z/il8b+gw3r3+1nKatmikjn2so1d01QraTlMqVSsbxNrRFi9wrf+M7Q==
+
+[serwer4]
+ip=192.168.1.132
+type=db
+portDB=2000
+portExt=3000
+portClient = 4000
+key=AAAAB3NzaC1yc2EAAAABiwAAAQEAklOUpkDHrfHY17SbrmTipNLTGK9Tjom/BWDSUGPl+nafzl
+HDTYW7hdi4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3Pbv7kOdJ/MtyBl
+WXFCR+Hao3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XAt3FaoJoAsncM1Q9x5+3
+V0Ww68/eiFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/EnmZ+AW4OZPnTPi89ZPmVMLuay
+rD2cE86Z/il8b+gw3r3+1nKatmikjn2so1d01QraTlMqVSsbxNrRFi9wrf+M7Q==
+
+[serwer5]
+ip=192.168.1.133
+type=db
+portDB=2000
+portExt=3000
+portClient = 4000
+key=AAAAB3NzaC1yc2EAAAABiwAAAQEAklOUpkDHrfHY17SbrmTipNLTGK9Tjom/BWDSUGPl+nafzl
+HDTYW7hdi4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3Pbv7kOdJ/MtyBl
+WXFCR+Hao3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XAt3FaoJoAsncM1Q9x5+3
+V0Ww68/eiFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/EnmZ+AW4OZPnTPi89ZPmVMLuay
+rD2cE86Z/il8b+gw3r3+1nKatmikjn2so1d01QraTlMqVSsbxNrRFi9wrf+M7Q==
+\end{lstlisting}
+
+\section{Protokół komunikacyjny}
+Poniżej przedstawiony został protokół komunikacyjny zaprojektowany i użyty w ramach projektu.
+
+\subsection{Format ramek}
+Każda ramka zaczyna się znakiem '(' a kończy znakiem ')'. Pola w ramce oddzielone są znakiem '.' (przecinek). Niektóre ramki zawierają zagnieżdżone zestawy pól, zestawy takie są ograniczone przez znaki '{' oraz '}', a wartości oddzielone przez ','. Nazwy pól dla czytelności dokumentu zapisywane będą w nawiasach ostrych, np. \textbf{<kraj>} (w prawdziwej ramce zapisywane są bez nawiasów). Zapis \textbf{<...>} oznacza że odpowiednie pola mogą się powtarzać.
+
+\subsection{Komunikacja klient-serwer warstwy zewnętrznej}
+
+\subsubsection{Pobranie listy dostępnych wyników}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(GET\_AVAILABLE\_RESULTS,*) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (RESULTS, <liczba wyników>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <...>) \\ \hline
+\end{longtable}
+
+Przykładowe zapytanie:
+\begin{lstlisting}[style=incode]
+(GET_AVAILABLE_RESULTS,*)
+\end{lstlisting}
+Przykładowa odpowiedź:
+\begin{lstlisting}[style=incode]
+(RESULTS,2,1001,Badanie prostaty,Polska,M,biala,61,
+1458,Pomiar cisnienia oka,Niemcy,K,biala,16)
+\end{lstlisting}
+
+\subsubsection{Pobranie listy dostępnych wyników spełniających kryteria}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(GET\_AVAILABLE\_RESULTS, <nazwa badania>, <kraj>, <płeć>, <rasa>, <minimalny wiek>, <maksymalny wiek>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (RESULTS, <liczba wyników>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <...>) \\ \hline
+\end{longtable}
+
+Płeć należy podać jako K lub M.
+Aby nie precyzować któregoś z pól należy podać \%. Można również wstawić \% jako część wzorca, np. Po\% będzie dopasowane zarówno do Polska jak i Portugalia.
+
+Przykładowe zapytanie:
+\begin{lstlisting}[style=incode]
+(GET_AVAILABLE_RESULTS,*,Polska,M,*,10,11)
+\end{lstlisting}
+Przykładowa odpowiedź:
+\begin{lstlisting}[style=incode]
+(RESULTS,2,1234,Badanie ogolne,Polska,M,biala,10,
+3214,Pobieranie krwi,Polska,M,biala,11)
+\end{lstlisting}
+
+\subsubsection{Pobranie pliku przypisanego do badania}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(GET\_RESULT, <id badania>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (RESULT, <nazwa pliku>, <rozmiar>, <dane>) \\ \hline
+\end{longtable}
+
+Rozmiar podany jest w bajtach po odkodowaniu.
+Dane przesłane są w postaci zakodowanej w Base64.
+
+Przykładowe zapytanie:
+\begin{lstlisting}[style=incode]
+(GET_RESULT,1234)
+\end{lstlisting}
+Przykładowa odpowiedź:
+\begin{lstlisting}[style=incode]
+(RESULT,badanie.xml,357,
+ MS4gQ2VydHlmaWthdCBCMg0KVHJ6ZWJhIHphcMWCYWNpxIcgbmEga29udG8gMTAgemV0YSw
+gYSBwb3RlbSBuYSBtYWlsYSBhLmNoYWJyb3dza2FAc2pvLnB3LmVkdS5wbCB3eXPFgmHEhyB
+wb3R3aWVyZHplbmllIHByemVsZXd1IChhbGJvIG5pZSB3eXN5xYJhxIcgYWxlIG1pZcSHIHB
+yenkgc29iaWUgcHJ6eSBvZGJpZXJhbml1KS4gUGFwaWVyIGRhasSFIHcgIER6aWFsZSBkcy4
+gU3R1ZGVudMOzdyBTSk8gKHBvay4gNDE5LCBHLkcuKSB3IGdvZHouIDk6MDAtMTM6MDAu)
+\end{lstlisting}
+
+
+\subsubsection{Pobranie statystyk}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(GET\_STATISTICS, <nazwa badania>, <data od>, <data do>, <kraj>, <płeć>, <rasa>, <minimalny wiek>, <maksymalny wiek>, {<pole grupowania 1>, <pole grupowania 2>, <...>}) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (STATISTICS, <liczba wyników>, <zestaw grupowania>, <liczba badań>, <zestaw grupowania>, <liczba badań>, <...>) \\ \hline
+\end{longtable}
+
+Pola <nazwa badania>, <data od>, <data do>, <kraj>, <płeć>, <rasa> są opcjonalne, można je pominąć podając *. Dla nazwy badania i kraju działa znak \% zastępujący dowolny ciąg znaków (np. ''Rentgen \%'' będzie dopasowany zarówno do ''Rentgen ręki'' jak i do ''Rentgen kolana''.
+Pola grupowania są opcjonalne, ich podanie spowoduje pogrupowanie liczby badań. W przeciwnym przypadku zapytanie zwróci tylko jeden wynik.
+
+Na przykład dla ramki:
+\begin{lstlisting}[style=incode]
+(GET_STATISTICS,Rentgen %,01-01-2010,*,*,M,*,*,*,{kraj})
+\end{lstlisting}
+generowane jest zapytanie zbliżone do:
+\begin{lstlisting}[style=incode]
+select count(zestaw) from badania where nazwa_badania like 'Rentgen %'
+and data >= 01-01-2010 and plec = 'M' group by (kraj) as zestaw
+\end{lstlisting}
+a odpowiedź to np.
+\begin{lstlisting}[style=incode]
+(STATISTICS,2,Polska,20,Czechy,74)
+\end{lstlisting}
+
+\subsubsection{Pobranie listy aktywnych serwerów warstwy zewnętrznej}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(ACTIVE\_SERVERS) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (ACTIVE\_SERVERS, <liczba serwerów>, <adres ip>, <port>, <adres ip>, <port>, <...>) \\ \hline
+\end{longtable}
+
+Przykładowe zapytanie:
+\begin{lstlisting}[style=incode]
+(ACTIVE_SERVERS)
+\end{lstlisting}
+Przykładowa odpowiedź:
+\begin{lstlisting}[style=incode]
+(ACTIVE_SERVERS,3,192.168.1.40,2000,10.0.5.72,3400,192.168.15.2,3400)
+\end{lstlisting}
+
+\subsection{Komunikacja między serwerami warstwy zewnętrznej}
+
+Ramki tej warstwy są szyfrowane kluczem publicznym odbiorcy i kodowane w base64. Ich format to (zaszyfrowana treść). Szyfrowane są pełne ramki, aby po odszyfrowaniu nadal były ramkami poprawnymi, np. (ACTIVE\_SERVERS) -> (KGRzZHNkc2RzZHNkZHNkc2RzZHNkc2RzZHNkc2RzKQ==). Poniżej opisywane będą ramki przed zaszyfrowaniem.
+\textbf{<nr nadawcy>} oznacza numer serwera, który nadaje konkretną ramkę.
+
+\subsubsection{Sprawdzenie czy serwer odpowiada}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, STATUS) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, STATUS\_OK) \\ \hline
+\end{longtable}
+
+Przykładowe zapytanie:
+\begin{lstlisting}[style=incode]
+(2,STATUS)
+\end{lstlisting}
+Przykładowa odpowiedź:
+\begin{lstlisting}[style=incode]
+(5,STATUS_OK)
+\end{lstlisting}
+
+\subsubsection{Rozesłanie tablicy aktywności serwerów warstwy zewnętrznej}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ACTIVE\_SERVERS\_EXT, <nr serwera>, <nr serwera>, <...>) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy zewnętrznej w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów.
+
+\subsubsection{Rozesłanie tablicy aktywności serwerów danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ACTIVE\_SERVERS\_DB, <nr serwera>, <nr serwera>, <...>) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy zewnętrznej w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów. Tablica aktywności serwerów danych aktualizowana jest na żądanie.
+
+\subsubsection{Informacja o braku koordynatora / elekcja}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ELECTION) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez każdy serwer który zauważy brak koordynatora do serwerów o numerze niższym niż własny.
+
+\subsubsection{Zatrzymanie elekcji dla konkretnego węzła}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ELECTION\_STOP) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez możliwych koordynatorów do węzłów o wyższym numerze.
+
+\subsubsection{Zakończenie elekcji (wybór nowego koordynatora)}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, COORDINATOR) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez nowego koordynatora do każdego serwera.
+
+\subsection{Komunikacja między serwerami danych}
+
+\subsubsection{Sprawdzenie czy serwer odpowiada}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, STATUS) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, STATUS\_OK) \\ \hline
+\end{longtable}
+
+Przykładowe zapytanie:
+\begin{lstlisting}[style=incode]
+(2,STATUS)
+\end{lstlisting}
+Przykładowa odpowiedź:
+\begin{lstlisting}[style=incode]
+(5,STATUS_OK)
+\end{lstlisting}
+
+\subsubsection{Rozesłanie tablicy aktywności serwerów danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ACTIVE\_SERVERS\_DB, <nr serwera>, <nr serwera>, <...>)& $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów.
+
+\subsubsection{Rozesłanie tablicy aktywności serwerów warstwy zewnętrznej}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ACTIVE\_SERVERS\_EXT, <nr serwera>, <nr serwera>, <...>)& $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów warstwy zewnętrznej. Tablica aktywności serwerów warstwy zewnętrznej aktualizowana jest na żądanie.
+
+\subsubsection{Informacja o braku koordynatora / elekcja}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ELECTION) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez każdy serwer który zauważy brak koordynatora do serwerów o numerze niższym niż własny.
+
+\subsubsection{Zatrzymanie elekcji dla konkretnego węzła}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ELECTION\_STOP) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez możliwych koordynatorów do węzłów o wyższym numerze.
+
+\subsubsection{Zakończenie elekcji (wybór nowego koordynatora)}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, COORDINATOR) & $\rightarrow$ &  \\ \hline
+\end{longtable}
+
+Ramka jest przesyłana przez nowego koordynatora do każdego serwera.
+
+\subsubsection{Wykonanie masowego wrzutu danych do bazy}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, UPLOAD, <czas>, <dane>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, UPLOAD, OK) \\ \hline
+\end{longtable}
+
+\textbf{<dane>} to archiwum zip zakodowane w base64. Archiwum powinno zawierać plik upload.sql, który jest wykonywany na bazie danych oraz folder data, w którym zawarte są inne pliki, które mają być dostępne jako wyniki badań.
+
+\subsubsection{Wykonanie pojedynczego wstawienia do bazy danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, INSERT, <czas>, <tabela>, <kolumna 1>, <kolumna 2>, <...>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, INSERT, OK) \\ \hline
+\end{longtable}
+
+\subsubsection{Wykonanie pojedynczego wstawienia pliku na serwer danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, ATTACH, <czas>, <nazwa pliku>, <dane>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, ATTACH, OK) \\ \hline
+\end{longtable}
+\textbf{<dane>} to plik zakodowany w base64.
+
+\subsubsection{Wykonanie pojedynczego usunięcia z bazy danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, DELETE, <czas>, <tabela>, <id wiersza>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, DELETE,OK) \\ \hline
+\end{longtable}
+
+\subsubsection{Wykonanie pojedynczego usunięcia pliku z serwera danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, UNLINK, <czas>, <nazwa pliku>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, UNLINK,OK) \\ \hline
+\end{longtable}
+
+\subsection{Komunikacja między serwerami warstwy zewnętrznej a serwerami danych}
+
+\subsubsection{Wykonanie pojedynczego usunięcia pliku z serwera danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, GET\_ACTIVE\_SERVERS\_DB) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, ACTIVE\_SERVERS\_DB, <nr serwera>, <nr serwera>, <...>) \\ \hline
+\end{longtable}
+Koordynator warstwy zewnętrznej co jakiś czas odpytuje dowolny serwer danych
+
+\subsubsection{Pobranie listy dostępnych wyników}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, GET\_AVAILABLE\_RESULTS, *) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, RESULTS, <liczba wyników>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <...>) \\ \hline
+\end{longtable}
+
+\subsubsection{Pobranie listy dostępnych wyników spełniających kryteria}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, GET\_AVAILABLE\_RESULTS, <nazwa badania>, <kraj>, <płeć>, <rasa>, <minimalny wiek>, <maksymalny wiek>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, RESULTS, <liczba wyników>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <id badania>, <nazwa badania>, <kraj>, <płeć>, <rasa>, <wiek>, <...>) \\ \hline
+\end{longtable}
+
+\subsubsection{Pobranie pliku przypisanego do badania}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, GET\_RESULT, <id badania>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, RESULT, <nazwa pliku>, <rozmiar>, <dane>) \\ \hline
+\end{longtable}
+
+\subsubsection{Pobranie statystyk}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(<nr nadawcy>, GET\_STATISTICS, <nazwa badania>, <data od>, <data do>, <kraj>, <płeć>, <rasa>, <minimalny wiek>, <maksymalny wiek>, {<pole grupowania 1>, <pole grupowania 2>, <...>}) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (<nr nadawcy>, STATISTICS, <liczba wyników>, <zestaw grupowania>, <liczba badań>, <zestaw grupowania>, <liczba badań>, <...>) \\ \hline
+\end{longtable}
+
+\subsection{Komunikacja między serwerami danych a klientem edytującym dane}
+\subsubsection{Wykonanie masowego wrzutu danych do bazy}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(UPLOAD, <dane>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (UPLOAD, OK) \\ \hline
+\end{longtable}
+
+\textbf{<dane>} to archiwum zip zakodowane w base64. Archiwum powinno zawierać plik upload.sql, który jest wykonywany na bazie danych oraz folder data, w którym zawarte są inne pliki, które mają być dostępne jako wyniki badań.
+
+\subsubsection{Wykonanie pojedynczego wstawienia do bazy danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(INSERT, <tabela>, <kolumna 1>, <kolumna 2>, <...>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (INSERT, OK) \\ \hline
+\end{longtable}
+
+\subsubsection{Wykonanie pojedynczego wstawienia pliku na serwer danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(ATTACH, <nazwa pliku>, <dane>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (ATTACH, OK) \\ \hline
+\end{longtable}
+\textbf{<dane>} to plik zakodowany w base64.
+
+\subsubsection{Wykonanie pojedynczego usunięcia z bazy danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(DELETE, <tabela>, <id wiersza>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (DELETE, OK) \\ \hline
+\end{longtable}
+
+\subsubsection{Wykonanie pojedynczego usunięcia pliku z serwera danych}
+
+\begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
+\hline
+(UNLINK, <nazwa pliku>) & $\rightarrow$ &  \\ \hline
+ & $\leftarrow$ & (UNLINK, OK) \\ \hline
+\end{longtable}
+
+\subsection{Obsługa błędów}
+Każde zapytanie może się też nie udać, należy wtedy zwrócić błąd:
+\begin{itemize}
+\item (<nr nadawcy>, ERROR, <kod błędu>) w przypadku komunikacji serwer-serwer
+\item (ERROR, <kod błędu>) w przypadku komunikacji klient-serwer
+\end{itemize}
+
+Lista błędów:
+\begin{itemize}
+\item HOST\_OVERLOADED – system obsługuje maksymalną liczbę użytkowników, nie jest możliwe zrealizowanie żądania
+\item ENCRYPTION\_ERROR – węzeł nie może odszyfrować otrzymanej wiadomości
+\item DB\_LOST\_CONNECTION – utracone połączenie z bazą danych
+\item INVALID\_REQUEST     – błędna ramka
+
+\end{itemize}
+
+
+\section{Klucze prywatne i publiczne}
+Klucz prywatny zostanie zapisany w pliku \textit{\~/.ssh/id\_rsa}.
+Klucz publiczny zostanie zapisany w pliku \textit{\~/.ssh/id\_rsa.pub}.
+Wygenerowaniem kluczy publicznych i prywatnych oraz zapisaniem ich do pliku
+konfiguracyjnego zajmuje się węzeł, z którego jest uruchamiana aplikacja. Do generowania kluczy wykorzystywany jest biblioteka OpenSSL.
+
+Przykładowy klucz prywatny:
+\begin{lstlisting}[style=incode]
+-----BEGIN RSA PRIVATE KEY----
+MIICXAIBAAKBgQCp2w+8HUdECo8V5yuKYrWJmUbLtD6nSyVifN543axXvNSFzQfW
+NOGVkMsCo6W4hpl5eHv1p9Hqdcf/ZYQDWCK726u6hsZA81AblAOOXKaUaxvFC+ZK
+RJf+MtUGnv0v7CrGoblm1mMC/OQI1JfSsYi68EpnaOLepTZw+GLTnusQgwIDAQAB
+AoGBAKDuq3PikblH/9YS11AgwjwC++7ZcltzeZJdGTSPY1El2n6Dip9ML0hUjeSM
+ROIWtac/nsNcJCnvOnUjK/c3NIAaGJcfRPiH/S0Ga6ROiDfFj2UXAmk/v4wRRUzr
+5lsA0jgEt5qcq2Xr/JPQVGB4wUgL/yQK0dDhW0EdrJ707e3BAkEA1aIHbmcVfCP8
+Y/uWuK0lvWxrIWfR5MlHhI8tD9lvkot2kyXiV+jB6/gktwk1QaFsy7dCXn7w03+k
+xrjEGGN+kQJBAMuKf55lDtU9K2Js3YSStTZAXP+Hz7XpoLxmbWFyGvBx806WjgAD
+624irwS+0tBxkERbRcisfb2cXmAx8earT9MCQDZuVCpjBWxd1t66qYpgQ29iAmG+
+jBIY3qn9uOOC6RSTiCCx1FvFqDMxRFmGdRVFxeyZwsVE3qNksF0Zko0MPKECQCEe
+oDV97DP2iCCz5je0R5hUUM2jo8DOC0GcyR+aGZgWcqjPBrwp5x08t43mHxeb4wW8
+dFZ6+trnntO4TMxkA9ECQB+yCPgO1zisJWYuD46KISoesYhwHe5C1BQElQgi9bio
+U39fFo88w1pok23a2CZBEXguSvCvexeB68OggdDXvy0=
+-----END RSA PRIVATE KEY-----
+\end{lstlisting}
+
+Przykładowy klucz publiczny
+\begin{lstlisting}[style=incode]
+-----BEGIN PUBLIC KEY----- 
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCp2w+8HUdECo8V5yuKYrWJmUbL
+tD6nSyVifN543axXvNSFzQfWNOGVkMsCo6W4hpl5eHv1p9Hqdcf/ZYQDWCK726u6
+hsZA81AblAOOXKaUaxvFC+ZKRJf+MtUGnv0v7CrGoblm1mMC/OQI1JfSsYi68Epn
+aOLepTZw+GLTnusQgwIDAQAB
+-----END PUBLIC KEY-----
+\end{lstlisting}
+
+
+\section{Skrypt uruchamiający aplikację}
+Jest uruchamiany na dowolnym węźle, który generuje klucze publiczne i prywatne dla wszystkich serwerów oraz serwerów danych. Musi uzupełnić nimi plik konfiguracyjny. Następnie wysyła plik konfiguracyjny przez ssh pozostałym węzłom. Ostatni krok to uruchomienie aplikacji podając w argumentach numer węzła zgodny z danymi znajdującymi się w pliku.

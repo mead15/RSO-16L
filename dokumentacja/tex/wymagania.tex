@@ -4,24 +4,58 @@
 
 \section{Wymagania funkcjonalne}
 
-\begin{itemize}
-\item Przechowywanie wrażliwych danych medycznych
-\item Udostępnianie danych odpowiednim osobom w zależności od uprawnień
-\item Prosta, konsolowa aplikacja kliencka wysyłająca zapytania do serwera i wyświetlająca wyniki
-\end{itemize}
+%\begin{table}[!h]
+%\label{tab:fr}
+  %\begin{center}
+  \begin{longtable}{| p{.20\textwidth} || p{.70\textwidth} |} 
+\hline
+\textbf{Identyfikator wymagania} & \textbf{Opis wymagania} \\ \hline
+FR1 & System umożliwia wyświetlenie listy dostępnych do pobrania wyników badań medycznych \\ \hline
+FR2 & System umożliwia pobranie zanonimizowaych wyników badań medycznych
+ \\ \hline
+FR3 & System umożliwia pobranie statystyk wykonanych badań medycznych
+ \\ \hline
+  \end{longtable} 
+  %\end{center}
+%\end{table}
 
 \section{Wymagania niefunkcjonalne}
 
-\begin{itemize}
-\item Wspólny testowy plik konfiguracyjny dla części serwerowej i klienckiej
-\item Współbieżne oprogramowanie realizujące część serwerową
-\item Odporność na uszkodzenie węzła
-\item Realizacja usługi w trakcie awarii w czasie obsługi
-\item Możliwość ponownego wpięcia węzła, z którym utracono łączność
-\item Odporność na próbę wpięcia wrogiego, nieuprawnionego węzła
-\item Zarządzanie zasobami transparentne dla oprogramowania klienckiego
-\item Większy niż 1 poziom redundancji danych
-\item Maksymalna ilość przechowywanych danych : 1Gb
-\item Uruchamianie i zamykanie części serwerowej jednokrotnym wywołaniem skryptu na każdym węźle
-\item Środowisko Linux Ubuntu 14.04 LTS
-\end{itemize}
+%\begin{table}[!h]
+%\label{tab:nfr}
+  %\begin{center}
+  \begin{longtable}{| p{.20\textwidth} || p{.70\textwidth} |} 
+\hline
+\textbf{Identyfikator wymagania} & \textbf{Opis wymagania} \\ \hline
+NFR1 & Współbieżne oprogramowanie realizujące część serwerową \\ \hline
+NFR2 & Uszkodzenie węzła, nie powoduje zatrzymania pracy systemu
+ \\ \hline
+NFR3 & Realizacja usługi w trakcie awarii w czasie obsługi
+ \\ \hline
+NFR4 & Możliwość ponownego wpięcia węzła, z którym utracono łączność
+ \\ \hline
+NFR5 & Odporność na próbę wpięcia wrogiego, nieuprawnionego węzła
+ \\ \hline
+NFR6 & Zarządzanie zasobami transparentnie dla oprogramowania klienckiego
+ \\ \hline
+NFR7 & Zapewnić poziom redundancji danych równy 2
+ \\ \hline
+NFR8 & Maksymalna pojemność przechowywanych wszystkich danych równa 1GB
+ \\ \hline
+NFR9 & Dane o pacjentach oraz badaniach przechowywane w relacyjnej bazie danych PostrgreSQL
+ \\ \hline
+NFR10 & Wyniki badań medycznych przechowywane w plikach formatu .xml lub .bmp na serwerze danych
+ \\ \hline
+NFR11 & Uruchamianie i zamykanie części serwerowej jednokrotnym wywołaniem skryptu dowolnym węźle
+ \\ \hline
+NFR12 & Liczba jednocześnie obsłużonych użytkowników równa 100
+ \\ \hline
+NFR13 & System uruchamiany w środowisku Linux Ubuntu 14.04 LTS
+ \\ \hline
+NFR14 & Dwa serwery danych, każdy posiada procesor z minimum czterema wątkami sprzętowymi oraz dyskiem twardym o pojemności min. 20 GB
+ \\ \hline
+NFR15 & Klaster trzech serwerów (nie wliczając serwerów danych), każdy posiada     procesor z minimum dwoma wątkami sprzętowymi
+ \\ \hline
+  \end{longtable}  
+  %\end{center}
+%\end{table}

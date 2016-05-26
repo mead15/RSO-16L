@@ -17,6 +17,8 @@
 \usepackage{amsthm}
 \usepackage{bookman}
 \usepackage{tabto}
+\usepackage{longtable}
+
 
 \usepackage{geometry}
 \usepackage[utf8x]{inputenc}
@@ -69,6 +71,7 @@
 % \setlength{\oddsidemargin}{\evensidemargin}
 % \setlength{\evensidemargin}{0.3cm}
 \usepackage[sort, compress]{cite}
+\usepackage{pdfpages}
 
 %\usepackage{multibib}
 %\newcites{bk,st,doc,web}{Książki i~artykuły,Standardy i~zalecenia,Dokumentacja produktów,Publikacje i~serwisy internetowe}
@@ -156,13 +159,14 @@ framerule=0.1pt,
 
 \renewcommand*\lstlistingname{Wydruk}
 \renewcommand*\lstlistlistingname{Spis wydruków}
+\renewcommand{\labelitemii}{$\bullet$}
 
 \pagenumbering{roman}
 \renewcommand{\baselinestretch}{1.0}
 \raggedbottom
 \input {tex/title}
 
-%\tableofcontents
+\tableofcontents
 % \addcontentsline{toc}{chapter}{{Przedmowa1}{vii}}{vii}
 
 % \chapter*{Spis tablic, rysunków i~wydruków}
@@ -196,7 +200,7 @@ framerule=0.1pt,
   }
 \makeatother
 \input {tex/repo}
-\input {tex/gantt}
+\input {tex/spotkania}
 \input {tex/tools}
 \end{appendices}
 
