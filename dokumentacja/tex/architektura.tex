@@ -23,14 +23,14 @@ System po stronie serwerowej składa się z dwóch warstw: wewnętrznej i zewnę
     \label{fig:db}
 \end{figure}
 
-Serwer danych ma za zadnie przechowywać informacje w bazie danych, przetwarzać informacje, udostępniać przetworzone informacje, udostępniać API do bezpośredniego wstawienia informacji oraz komunikować się z innymi serwerami danych w celu realizacji redundancji danych, zachowania spójności danych i współbieżnego realizowania zapytań. Schemat serwera danych przedstawiono na rysunku \ref{fig:db}.
+Serwer danych ma za zadanie przechowywać informacje w bazie danych, przetwarzać informacje, udostępniać przetworzone informacje, udostępniać API do bezpośredniego wstawienia informacji oraz komunikować się z innymi serwerami danych w celu realizacji redundancji danych, zachowania spójności danych i współbieżnego realizowania zapytań. Schemat serwera danych przedstawiono na rysunku \ref{fig:db}.
 
 \subsection{Redundancja danych}
 Aby zapewnić redundancję danych zastosowano prostą replikację całego serwera. W systemie poziom redundancji jest równy liczbie serwerów danych. W projekcie będzie on równy 2.
 \subsection{Protokół spójności}
-Zrealizowany zostanie model spójności sekwencyjnej. To oznacza, że dozwolony jest każdy przeplot operacji czytania i pisania ale wszystkie procesy, na wszystkich maszynach oglądają ten sam przeplot operacji. Zostanie on zapewniony m.in. przez rozsyłanie każdej zmiany w bazie do drugiego serwera. Zapis może odbywać się równolegle na dwóch serwerach. Może zdarzyć się sytuacja, w której na skutek modyfikacji tego samego rekordu w bazie jednocześnie na dwóch serwerach, dwie różne zmiany zostaną rozpropagowane w tym samym czasie i pojawi się niespójność. Aby temu zapobiec zastosowano algorytm Lamporta dostrajania lokalnych zegarów. Każdy komunikat otrzymuje znacznik czasu, zgodny z lokalnym zegarem. Jeżeli po nadejściu komunikatu zegar odbiorcy pokazuje wartość wcześniejszą, niż czas w komunikacie to odbiorca przesuwa swój zegar w przód, tak aby wskazywał wartość czasu o 1 większą niż czas nadania. Komunikaty są umieszczane w lokalnej kolejce zgodnie z jego znacznikiem czasu. Zakłada się również, że nadawca komunikatu jest również jego odbiorcą. Ta metoda zapewnia, że wszystkie procesy będą miały ta samą kopię kolejki zapasowej.
+Zrealizowany zostanie model spójności sekwencyjnej. To oznacza, że dozwolony jest każdy przeplot operacji czytania i pisania, ale wszystkie procesy na wszystkich maszynach oglądają ten sam przeplot operacji. Zostanie on zapewniony m.in. przez rozsyłanie każdej zmiany w bazie do drugiego serwera. Zapis może odbywać się równolegle na dwóch serwerach. Może zdarzyć się sytuacja, w której na skutek modyfikacji tego samego rekordu w bazie jednocześnie na dwóch serwerach, dwie różne zmiany zostaną rozpropagowane w tym samym czasie i pojawi się niespójność. Aby temu zapobiec zastosowano algorytm Lamporta dostrajania lokalnych zegarów. Każdy komunikat otrzymuje znacznik czasu zgodny z lokalnym zegarem. Jeżeli po nadejściu komunikatu zegar odbiorcy pokazuje wartość wcześniejszą niż czas w komunikacie, to odbiorca przesuwa swój zegar w przód, tak aby wskazywał wartość czasu o 1 większą niż czas nadania. Komunikaty są umieszczane w lokalnej kolejce zgodnie z ich znacznikami czasu. Zakłada się, że nadawca komunikatu jest również jego odbiorcą. Ta metoda zapewnia, że wszystkie procesy będą miały tą samą kopię kolejki zapasowej.
 
-Gdy po awarii, jeden z serwerów danych połączy się ponownie, musi zaktualizować swoje dane. W tym celu można zapisywać wszystkie zmiany w bazie danych. Nowo doleczony serwer sprawdziłby jaką ostatnią operację wykonywał, a następnie wysłał do mastera prośbę o odesłanie wszystkich późniejszych operacji. Tego rozwiązania nie będzie w opisywanym systemie ze względu krotki czas realizacji projektu.
+Gdy jeden z serwerów danych połączy się ponownie po awarii, musi zaktualizować swoje dane. W tym celu można zapisywać wszystkie zmiany w bazie danych. Nowo dołączony serwer sprawdziłby jaką ostatnią operację wykonywał, a następnie wysłał do mastera prośbę o odesłanie wszystkich późniejszych operacji. Tego rozwiązania nie będzie w opisywanym systemie ze względu krótki czas realizacji projektu.
 
 \subsection{Przechowywanie danych}
 
@@ -63,19 +63,19 @@ Przykładowy plik .xml z wynikiem badań:
 
 
 \subsection{Komunikacja}
-Komunikacja z serwerami warstwy zewnętrznej i serwerami danych odbywa się przez TCP/IP. W komunikacji pośredniczy moduł komunikacyjny, który oczekuje na zapytania. W serwerze danych znajdują się trzy moduły komunikacyjne (dla serwerów warstwy zewnętrznej, dla serwerów danych i pomocniczy do wstawiania danych). Każdy nasłuchuje na oddzielnym porcie. Numery portów znajdują się w pliku konfiguracyjnym. 
+Komunikacja z serwerami warstwy zewnętrznej i serwerami danych odbywa się przez protokół TCP/IP. W komunikacji pośredniczy moduł komunikacyjny, który oczekuje na zapytania. W serwerze danych znajdują się trzy moduły komunikacyjne (dla serwerów warstwy zewnętrznej, dla serwerów danych i pomocniczy do wstawiania danych). Każdy nasłuchuje na oddzielnym porcie. Numery portów znajdują się w pliku konfiguracyjnym. 
 
 \subsection{Przetwarzanie żądań}
-Każde zapytanie jest obsługiwane w oddzielnym wątku. Serwer korzysta z puli wątków. ich liczba jest określona w pliku konfiguracyjnym. Powinna być równa liczbie wątków sprzętowych, co zapewni efektywne wykorzystanie procesora. Zapytania przychodzące z warstwy zewnętrznej lub wewnętrznej są kolejkowane w kolejności przyjścia lub odrzucane, gdy zapytań będzie za dużo (kolejka FIFO). Maksymalny rozmiar kolejki jest określony w pliku konfiguracyjnym. Żądania dotyczące modyfikacji są dodatkowo kolejkowane zgodnie z ich znacznikami czasu. Wątki realizują na zmianę, raz zapytania z kolejki modyfikacji, raz z kolejki zapytań.
+Każde zapytanie jest obsługiwane w oddzielnym wątku. Serwer korzysta z puli wątków, których liczba jest określona w pliku konfiguracyjnym. Powinna ona być równa liczbie wątków sprzętowych, co zapewni efektywne wykorzystanie procesora. Zapytania przychodzące z warstwy zewnętrznej lub wewnętrznej są kolejkowane w kolejności przyjścia lub odrzucane, gdy zapytań będzie za dużo (kolejka FIFO). Maksymalny rozmiar kolejki jest określony w pliku konfiguracyjnym. Żądania dotyczące modyfikacji są dodatkowo kolejkowane zgodnie z ich znacznikami czasu. Wątki realizują naprzemiennie żądania z kolejki modyfikacji i kolejki zapytań.
 
 \subsection{Szyfrowanie wiadomości}
-Komunikacja jest szyfrowana przy pomocy RSA. Każdy z serwerów dostanie wygenerowany klucz publiczny oraz prywatny. Klucze publiczne wszystkich serwerów oraz serwerów danych są zapisane w pliku konfiguracyjnym. Wysłanie wiadomości będzie wymagało zaszyfrowania jej kluczem publicznym odbiorcy i tylko on będzie mógł ją odszyfrować swoim kluczem prywatnym. Jest to konieczne aby zachować bezpieczeństwo przesyłania wrażliwych danych między serwerami danych. Zapewni również to, że niepowołany węzeł w warstwie wewnętrznej lub zewnętrznej, jeżeli dostanie informację, nie będzie w stanie jej odszyfrować.
+Komunikacja jest szyfrowana przy pomocy algorytmu RSA. Każdy z serwerów dostanie wygenerowany klucz publiczny oraz prywatny. Klucze publiczne wszystkich serwerów oraz serwerów danych są zapisane w pliku konfiguracyjnym. Wysłanie wiadomości będzie wymagało zaszyfrowania jej kluczem publicznym odbiorcy i tylko on będzie mógł ją odszyfrować swoim kluczem prywatnym. Jest to konieczne, aby zachować bezpieczeństwo przesyłania wrażliwych danych między serwerami danych. Ponadto, szyfrowanie zapewni, że jeżeli informację dostanie niepowołany węzeł w warstwie wewnętrznej lub zewnętrznej, to nie będzie on w stanie jej odszyfrować.
 
 \subsection{Koordynator warstwy wewnętrznej}
-Jeden z serwerów danych będzie koordynatorem. Koordynator kontroluje pracę pozostałych serwerów, sprawdza, czy wszystkie są dostępne, tworzy i rozsyła do wszystkich węzłów tablicę aktywności serwerów danych. Sprawdzanie obecności serwerów odbywa się poprzez cykliczne odpytywanie. Okres odpytywania jest zawarty w pliku konfiguracyjnym. Stan warstwy wewnętrznej jest wysyłany tylko wtedy gdy się zmieni, np. jeden z serwerów ulegnie awarii. Informacja ta jest zapisywana w pamięci RAM w przeznaczonej do tego klasie.
+Jeden z serwerów danych będzie koordynatorem. Koordynator kontroluje pracę pozostałych serwerów, sprawdza, czy wszystkie są dostępne, tworzy i rozsyła do wszystkich węzłów tablicę aktywności serwerów danych. Sprawdzanie obecności serwerów odbywa się poprzez cykliczne odpytywanie. Okres odpytywania jest zawarty w pliku konfiguracyjnym. Stan warstwy wewnętrznej jest wysyłany tylko wtedy, gdy się zmieni, np. jeden z serwerów ulegnie awarii. Informacja ta jest zapisywana w pamięci RAM w przeznaczonej do tego klasie.
 
 \subsection{Algorytm elekcji}
-Gdy master ulegnie awarii jego rolę przejmuje inny serwer. W projekcie przewidziano dwa serwery danych, więc serwer który zauważy brak mastera powinien od razu przejąć jego rolę. Jednakże, rozwiązanie powinno być skalowalne więc do elekcji zastosowany zostanie algorytm Tyrana. Został on szczegółowo opisany w następnym podrozdziale dotyczącym serwerów warstwy zewnętrznej.
+Gdy master ulegnie awarii, jego rolę przejmuje inny serwer. W projekcie przewidziano dwa serwery danych, więc serwer, który zauważy brak mastera, powinien od razu przejąć jego rolę. Jednakże rozwiązanie powinno być skalowalne, więc do elekcji zastosowany zostanie algorytm Tyrana. Został on szczegółowo opisany w następnym podrozdziale dotyczącym serwerów warstwy zewnętrznej.
 
 \subsection{Bezpośrednie wstawianie danych}
 Dodatkowo na potrzeby projektu serwery danych udostępnią API do bezpośredniego zapisu danych.
@@ -97,31 +97,31 @@ Prowadzony jest dziennik operacji wykonywanych na serwerze danych. Ma on formę 
 Serwery warstwy zewnętrznej przekazują zapytania od klienta do serwera danych i przesyłają już przetworzone dane klientowi. Ich rolą jest również komunikowanie się z innymi serwerami warstwy zewnętrznej w celu współbieżnej realizacji żądań i realizacji odporności systemu na awarie węzłów. Schemat serwera warstwy zewnętrznej przedstawia rysunek \ref{fig:serv}.
 
 \subsection{Komunikacja}
-Komunikacja z klientem i serwerami danych odbywa się przez TCP/IP. W komunikacji pośredniczą moduły komunikacyjne, który oczekują na zapytania. W serwerze danych znajdują się trzy moduły komunikacyjne (dla serwerów warstwy zewnętrznej, dla serwerów danych i klienta). Każdy nasłuchuje na oddzielnym porcie. Numery portów znajdują się w pliku konfiguracyjnym. 
+Komunikacja z klientem i serwerami danych odbywa się przez protokół TCP/IP. W komunikacji pośredniczą moduły komunikacyjne, które oczekują na zapytania. W serwerze danych znajdują się trzy moduły komunikacyjne (dla serwerów warstwy zewnętrznej, dla serwerów danych i klienta). Każdy nasłuchuje na oddzielnym porcie. Numery portów znajdują się w pliku konfiguracyjnym. 
 
-Serwer może wysyłać zapytania do dowolnego serwera danych. Jeżeli któryś z nich będzie niedostępny próbuje połączyć się z kolejnym z listy zawartej w pliku konfiguracyjnym.
+Serwer może wysyłać zapytania do dowolnego serwera danych. Jeżeli któryś z nich będzie niedostępny, próbuje połączyć się z kolejnym z listy zawartej w pliku konfiguracyjnym.
 
 \subsection{Szyfrowanie danych}
-Komunikacja między serwerami warstwy zewnętrznej oraz między serwerem warstwy zewnętrznej, a serwerem danych jest szyfrowana przy użyciu RSA. Dzięki temu niepowołane węzeł nie będzie w stanie rozszyfrować żadnych informacji. Komunikacja z klientem nie jest szyfrowana, nie jest to konieczne, gdyż przesyłane w tym obszarze informacje nie są już wrażliwe.
+Komunikacja między serwerami warstwy zewnętrznej oraz między serwerem warstwy zewnętrznej a serwerem danych jest szyfrowana przy użyciu algorytmu RSA. Dzięki temu niepowołany węzeł nie będzie w stanie rozszyfrować żadnych informacji. Komunikacja z klientem nie jest szyfrowana. Nie jest to konieczne, gdyż przesyłane w tym obszarze informacje nie są już wrażliwe.
 
 \subsection{Przetwarzanie żądań}
-Serwer korzysta z puli wątków. ich liczba jest określona w pliku konfiguracyjnym i powinna być równa liczbie wątków sprzętowych. Po odebraniu żądania od klienta lub innego węzła, wstawiane jest ono do kolejki zapytań (kolejka FIFO). Długość kolejki jest odczytywana z pliku konfiguracyjnego.
+Serwer korzysta z puli wątków, których liczba jest określona w pliku konfiguracyjnym i powinna być równa liczbie wątków sprzętowych. Po odebraniu żądania od klienta lub innego węzła, wstawiane jest ono do kolejki zapytań (kolejka FIFO). Długość kolejki jest odczytywana z pliku konfiguracyjnego.
 
 \subsection{Koordynator}
-Jeden z serwerów jest koordynatorem. Koordynator kontroluje pracę pozostałych serwerów, sprawdza, czy wszystkie są dostępne. Tworzy i rozsyła do wszystkich węzłów tablicę aktywności serwerów. Sprawdzanie obecności serwerów odbywa się poprzez cykliczne odpytywanie. Odpytywany jest też jeden z serwerów danych o aktualny stan warstwy wewnętrznej. Okres odpytywania jest zawarty w pliku konfiguracyjnym. Stan całego systemu jest wysyłany tylko wtedy gdy się zmieni, np. jeden z serwerów ulegnie awarii. Informacja ta jest zapisywana w pamięci RAM w przeznaczonej do tego klasie.
+Jeden z serwerów jest koordynatorem. Koordynator kontroluje pracę pozostałych serwerów, sprawdza, czy wszystkie są dostępne, tworzy i rozsyła do wszystkich węzłów tablicę aktywności serwerów. Sprawdzanie obecności serwerów odbywa się poprzez cykliczne odpytywanie. Odpytywany o aktualny stan warstwy wewnętrznej jest też jeden z serwerów danych. Okres odpytywania jest zawarty w pliku konfiguracyjnym. Stan całego systemu jest wysyłany tylko wtedy, gdy się zmieni, np. jeden z serwerów ulegnie awarii. Informacja ta jest zapisywana w pamięci RAM w przeznaczonej do tego klasie.
 
 \subsection{Algorytm elekcji}
-Gdy master ulegnie awarii jego rolę przejmuje inny z serwerów. W projekcie zastosowano algorytm Tyrana.
-Wszystkie serwery znają liczbę i adresy pozostałych. Każdy z serwerów ma przyporządkowany numer. Masterem staje się ten o najniższym numerze. Pierwszy serwer, który zauważy, że nie ma mastera, czeka losowy czas i wysyła komunikat \textbf{ELECTION} do wszystkich węzłów o niższym numerze, jeżeli nikt nie odpowie to serwer staje się nowym koordynatorem i wysyła do wszystkich pozostałych węzłów informujący komunikat \textbf{COORDINATOR}. Jeżeli któryś z węzłów o niższym numerze odpowie to on przejmuje kontrolę. Brak koordynatora będzie zauważony, gdy węzeł nie zostanie odpytany w odpowiednim czasie. Dodanie losowego czasu po zauważeniu braku mastera zapobiegnie sytuacji, gdy kilka serwerów jednocześnie wyśle wiadomość \textbf{ELECTION}.
+Gdy master ulegnie awarii, jego rolę przejmuje inny z serwerów. W projekcie zastosowano algorytm Tyrana.
+Wszystkie serwery znają liczbę i adresy pozostałych. Każdy z serwerów ma przyporządkowany numer. Masterem staje się ten o najniższym numerze. Pierwszy serwer, który zauważy, że nie ma mastera, czeka losowy czas i wysyła komunikat \textbf{ELECTION} do wszystkich węzłów o niższym numerze. Jeżeli nikt nie odpowie, to serwer staje się nowym koordynatorem i wysyła do wszystkich pozostałych węzłów informujący o tym komunikat \textbf{COORDINATOR}. Jeżeli któryś z węzłów o niższym numerze odpowie, to on przejmuje kontrolę. Brak koordynatora będzie zauważony, gdy węzeł nie zostanie odpytany w odpowiednim czasie. Dodanie losowego czasu po zauważeniu braku mastera zapobiegnie sytuacji, w której kilka serwerów jednocześnie wyśle wiadomość \textbf{ELECTION}.
 
 \subsection{Awaria węzła}
-Awaria węzła zostanie wykryta, podczas cyklicznego odpytywania przez koordynatora. Nieaktywny serwer nie odpowie, więc koordynator zaktualizuje stan systemu i roześle do pozostałych węzłów. Gdy serwer będzie znów dostępny, przy najbliższym odpytywaniu, zostanie zauważony przez koordynatora, który ponownie zaktualizuje stan systemu.
+Awaria węzła zostanie wykryta podczas cyklicznego odpytywania przez koordynatora. Nieaktywny serwer nie odpowie, więc koordynator zaktualizuje stan systemu i roześle do pozostałych węzłów. Gdy serwer będzie znów dostępny, przy najbliższym odpytywaniu zostanie zauważony przez koordynatora, który ponownie zaktualizuje stan systemu.
 
 \subsection{Przerwanie połączenia między węzłami}
-Może pojawić się sytuacja, gdy przerwane zostanie połączenie między dwoma poprawnie pracującymi serwerami. Wtedy każdy z nich przeprowadzi elekcję oddzielnie. Powstaną dwa klastry serwerów, ale wszystko będzie poprawnie pracowało. Gdy połączenie wróci, w warstwie zewnętrznej będzie dwóch koordynatorów. W celu rozwiązania tego problemu, pierwszy koordynator, który zostanie odpytany przez drugiego wyłącza u siebie funkcję koordynatora.
+Może pojawić się sytuacja, gdy przerwane zostanie połączenie między dwoma poprawnie pracującymi serwerami. Wtedy każdy z nich przeprowadzi elekcję oddzielnie. Powstaną dwa klastry serwerów, ale wszystko będzie poprawnie pracowało. Gdy połączenie wróci, w warstwie zewnętrznej będzie dwóch koordynatorów. W celu rozwiązania tego problemu pierwszy koordynator, który zostanie odpytany przez drugiego, wyłącza u siebie funkcję koordynatora.
 
 \subsection{Dziennik operacji}
-Prowadzony jest dziennik operacji wykonywanych na serwerze danych. Ma on formę pliku tekstowego, w którym zapisywane są informacje o błędach, utracie węzła, dołączeniu węzła i zmianie koordynatora.
+Prowadzony jest dziennik operacji wykonywanych na serwerze zewnętrznym. Ma on formę pliku tekstowego, w którym zapisywane są informacje o błędach, utracie węzła, dołączeniu węzła i zmianie koordynatora.
 
 
 \section{Aplikacja kliencka}
@@ -137,15 +137,15 @@ Prowadzony jest dziennik operacji wykonywanych na serwerze danych. Ma on formę 
 Aplikacja kliencka wysyła polecenia od użytkownika do serwerów warstwy zewnętrznej i wyświetla ich wynik lub zapisuje pobrane dane. Schemat aplikacji klienckiej przedstawiono na rysunku \ref{fig:client}.
 
 \subsection{Komunikacja}
-Komunikacja między klientem, a serwerem warstwy zewnętrznej odbywa się przez TCP/IP. Początkowo w pliku konfiguracyjnym klienta jest adres jednego serwera. Aplikacja próbuje nawiązać z nim połączenie. Jeżeli to połączenie zakończy się niepowodzeniem aplikacja kończy działanie. W przeciwnym wypadku klient pobiera informację o dostępnych serwerach. Uzupełnia tą informacją plik konfiguracyjny. Dzięki temu przy następnym uruchomieniu, gdy któryś z serwerów będzie niedostępny, nastąpi próba połączenia z innym.
+Komunikacja między klientem a serwerem warstwy zewnętrznej odbywa się przez protokół TCP/IP. Początkowo w pliku konfiguracyjnym klienta jest adres jednego serwera. Aplikacja próbuje nawiązać z nim połączenie. Jeżeli to połączenie zakończy się niepowodzeniem, aplikacja kończy działanie. W przeciwnym wypadku klient pobiera informację o dostępnych serwerach. Uzupełnia tą informacją plik konfiguracyjny. Dzięki temu przy następnym uruchomieniu, gdy któryś z serwerów będzie niedostępny, nastąpi próba połączenia z innym.
 
 \subsection{Szyfrowanie}
 Komunikacja od serwera do klienta nie jest szyfrowana. Nie jest to konieczne, ponieważ przekazywane dane nie wymagają już ochrony.
 
 \subsection{Funkcjonalność}
-Aplikacja umożliwia dostęp do funkcji oferowanych przez API serwera, co oznacza wyświetlenie wyniku zapytania lub pobranie pliku z wynikiem danych medycznych. Dostępne zapytania są opisane w rozdziale dotyczącym protokołu komunikacyjnego. Jeżeli jakieś żądanie się nie powiedzie mimo dostępności serwera (z powodu przeciążenia), następuje ponowna próba wysłania żądania ale do innego serwera.
+Aplikacja umożliwia dostęp do funkcji oferowanych przez API serwera, co oznacza wyświetlenie wyniku zapytania lub pobranie pliku z wynikiem danych medycznych. Dostępne zapytania są opisane w rozdziale dotyczącym protokołu komunikacyjnego. Jeżeli jakieś żądanie się nie powiedzie mimo dostępności serwera (z powodu przeciążenia), następuje ponowna próba wysłania żądania, ale do innego serwera.
 Aplikacja kliencka jest aplikacją konsolową, nieinteraktywną, co oznacza, że wykonywane jest jedno zapytanie, zwracany jest wynik i następuje zakończenie działania.
-\section{Plik konfiguracyjny}
+\section{Plik konfiguracyjn}
 
 W pliku konfiguracyjnym klienta na początku znajduje się adres i port jednego z serwerów.
 W pliku konfiguracyjnym serwerów znajdują się adresy, porty i nazwy serwerów, adresy serwerów baz danych, liczba wątków w puli, liczba zapytań w kolejce, okres odpytywania węzłów przez serwer główny, klucze publiczne serwerów.
@@ -245,7 +245,7 @@ rD2cE86Z/il8b+gw3r3+1nKatmikjn2so1d01QraTlMqVSsbxNrRFi9wrf+M7Q==
 Poniżej przedstawiony został protokół komunikacyjny zaprojektowany i użyty w ramach projektu.
 
 \subsection{Format ramek}
-Każda ramka zaczyna się znakiem '(' a kończy znakiem ')'. Pola w ramce oddzielone są znakiem '.' (przecinek). Niektóre ramki zawierają zagnieżdżone zestawy pól, zestawy takie są ograniczone przez znaki '{' oraz '}', a wartości oddzielone przez ','. Nazwy pól dla czytelności dokumentu zapisywane będą w nawiasach ostrych, np. \textbf{<kraj>} (w prawdziwej ramce zapisywane są bez nawiasów). Zapis \textbf{<...>} oznacza że odpowiednie pola mogą się powtarzać.
+Każda ramka zaczyna się znakiem '(' a kończy znakiem ')'. Pola w ramce oddzielone są znakiem ',' (przecinek). Niektóre ramki zawierają zagnieżdżone zestawy pól. Zestawy takie są ograniczone przez znaki '{' oraz '}', a wartości oddzielone przez ','. Nazwy pól dla czytelności dokumentu zapisywane będą w nawiasach ostrych, np. \textbf{<kraj>} (w prawdziwej ramce zapisywane są bez nawiasów). Zapis \textbf{<...>} oznacza, że odpowiednie pola mogą się powtarzać.
 
 \subsection{Komunikacja klient-serwer warstwy zewnętrznej}
 
@@ -276,7 +276,7 @@ Przykładowa odpowiedź:
 \end{longtable}
 
 Płeć należy podać jako K lub M.
-Aby nie precyzować któregoś z pól należy podać \%. Można również wstawić \% jako część wzorca, np. Po\% będzie dopasowane zarówno do Polska jak i Portugalia.
+Aby nie precyzować któregoś z pól, należy podać \%. Można również wstawić \% jako część wzorca, np. Po\% będzie dopasowane zarówno do Polska, jak i Portugalia.
 
 Przykładowe zapytanie:
 \begin{lstlisting}[style=incode]
@@ -322,7 +322,7 @@ gU3R1ZGVudMOzdyBTSk8gKHBvay4gNDE5LCBHLkcuKSB3IGdvZHouIDk6MDAtMTM6MDAu)
  & $\leftarrow$ & (STATISTICS, <liczba wyników>, <zestaw grupowania>, <liczba badań>, <zestaw grupowania>, <liczba badań>, <...>) \\ \hline
 \end{longtable}
 
-Pola <nazwa badania>, <data od>, <data do>, <kraj>, <płeć>, <rasa> są opcjonalne, można je pominąć podając *. Dla nazwy badania i kraju działa znak \% zastępujący dowolny ciąg znaków (np. ''Rentgen \%'' będzie dopasowany zarówno do ''Rentgen ręki'' jak i do ''Rentgen kolana''.
+Pola <nazwa badania>, <data od>, <data do>, <kraj>, <płeć>, <rasa> są opcjonalne, można je pominąć podając *. Dla nazwy badania i kraju działa znak \% zastępujący dowolny ciąg znaków (np. ''Rentgen \%'' będzie dopasowany zarówno do ''Rentgen ręki'', jak i do ''Rentgen kolana''.
 Pola grupowania są opcjonalne, ich podanie spowoduje pogrupowanie liczby badań. W przeciwnym przypadku zapytanie zwróci tylko jeden wynik.
 
 Na przykład dla ramki:
@@ -385,7 +385,7 @@ Przykładowa odpowiedź:
 (<nr nadawcy>, ACTIVE\_SERVERS\_EXT, <nr serwera>, <nr serwera>, <...>) & $\rightarrow$ &  \\ \hline
 \end{longtable}
 
-Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy zewnętrznej w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów.
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy zewnętrznej w momencie, gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów.
 
 \subsubsection{Rozesłanie tablicy aktywności serwerów danych}
 
@@ -394,7 +394,7 @@ Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy 
 (<nr nadawcy>, ACTIVE\_SERVERS\_DB, <nr serwera>, <nr serwera>, <...>) & $\rightarrow$ &  \\ \hline
 \end{longtable}
 
-Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy zewnętrznej w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów. Tablica aktywności serwerów danych aktualizowana jest na żądanie.
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy zewnętrznej w momencie, gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów. Tablica aktywności serwerów danych aktualizowana jest na żądanie.
 
 \subsubsection{Informacja o braku koordynatora / elekcja}
 
@@ -403,7 +403,7 @@ Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera warstwy 
 (<nr nadawcy>, ELECTION) & $\rightarrow$ &  \\ \hline
 \end{longtable}
 
-Ramka jest przesyłana przez każdy serwer który zauważy brak koordynatora do serwerów o numerze niższym niż własny.
+Ramka jest przesyłana przez każdy serwer, który zauważy brak koordynatora do serwerów o numerze niższym niż własny.
 
 \subsubsection{Zatrzymanie elekcji dla konkretnego węzła}
 
@@ -449,7 +449,7 @@ Przykładowa odpowiedź:
 (<nr nadawcy>, ACTIVE\_SERVERS\_DB, <nr serwera>, <nr serwera>, <...>)& $\rightarrow$ &  \\ \hline
 \end{longtable}
 
-Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów.
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w momencie, gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów.
 
 \subsubsection{Rozesłanie tablicy aktywności serwerów warstwy zewnętrznej}
 
@@ -458,7 +458,7 @@ Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w
 (<nr nadawcy>, ACTIVE\_SERVERS\_EXT, <nr serwera>, <nr serwera>, <...>)& $\rightarrow$ &  \\ \hline
 \end{longtable}
 
-Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w momencie gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów warstwy zewnętrznej. Tablica aktywności serwerów warstwy zewnętrznej aktualizowana jest na żądanie.
+Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w momencie, gdy nastąpi jakakolwiek zmiana w tablicy aktywności serwerów warstwy zewnętrznej. Tablica aktywności serwerów warstwy zewnętrznej aktualizowana jest na żądanie.
 
 \subsubsection{Informacja o braku koordynatora / elekcja}
 
@@ -467,7 +467,7 @@ Ramka jest przesyłana przez koordynatora do każdego aktywnego serwera danych w
 (<nr nadawcy>, ELECTION) & $\rightarrow$ &  \\ \hline
 \end{longtable}
 
-Ramka jest przesyłana przez każdy serwer który zauważy brak koordynatora do serwerów o numerze niższym niż własny.
+Ramka jest przesyłana przez każdy serwer, który zauważy brak koordynatora do serwerów o numerze niższym niż własny.
 
 \subsubsection{Zatrzymanie elekcji dla konkretnego węzła}
 
@@ -532,7 +532,7 @@ Ramka jest przesyłana przez nowego koordynatora do każdego serwera.
 
 \subsection{Komunikacja między serwerami warstwy zewnętrznej a serwerami danych}
 
-\subsubsection{Wykonanie pojedynczego usunięcia pliku z serwera danych}
+\subsubsection{Pobranie tablicy aktywności serwerów danych}
 
 \begin{longtable}{| p{.40\textwidth} | p{.10\textwidth}| p{.40\textwidth} |} 
 \hline
@@ -638,7 +638,7 @@ Każde zapytanie może się też nie udać, należy wtedy zwrócić błąd:
 Klucz prywatny zostanie zapisany w pliku \textit{\~/.ssh/id\_rsa}.
 Klucz publiczny zostanie zapisany w pliku \textit{\~/.ssh/id\_rsa.pub}.
 Wygenerowaniem kluczy publicznych i prywatnych oraz zapisaniem ich do pliku
-konfiguracyjnego zajmuje się węzeł, z którego jest uruchamiana aplikacja. Do generowania kluczy wykorzystywany jest biblioteka OpenSSL.
+konfiguracyjnego zajmuje się węzeł, z którego jest uruchamiana aplikacja. Do generowania kluczy wykorzystywana jest biblioteka OpenSSL.
 
 Przykładowy klucz prywatny:
 \begin{lstlisting}[style=incode]
@@ -671,4 +671,4 @@ aOLepTZw+GLTnusQgwIDAQAB
 
 
 \section{Skrypt uruchamiający aplikację}
-Jest uruchamiany na dowolnym węźle, który generuje klucze publiczne i prywatne dla wszystkich serwerów oraz serwerów danych. Musi uzupełnić nimi plik konfiguracyjny. Następnie wysyła plik konfiguracyjny przez ssh pozostałym węzłom. Ostatni krok to uruchomienie aplikacji podając w argumentach numer węzła zgodny z danymi znajdującymi się w pliku.
+Skrypt uruchamiający aplikację jest uruchamiany na dowolnym węźle, który generuje klucze publiczne i prywatne dla wszystkich serwerów oraz serwerów danych. Musi uzupełnić nimi plik konfiguracyjny. Następnie wysyła plik konfiguracyjny przez SSH pozostałym węzłom. Ostatni krok to uruchomienie aplikacji przy jednoczesnym podaniu w argumentach numeru węzła zgodnego z danymi znajdującymi się w pliku.
