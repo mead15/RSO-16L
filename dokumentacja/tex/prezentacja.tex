@@ -1,0 +1,67 @@
+\chapter{Prezentacja systemu}
+\label{ap:2}
+
+\section{Opis prezentacji systemu}
+
+\begin{enumerate}
+	\item Start aplikacji.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Uruchomienie aplikacji poprzez wywołanie komendy ./ServerDaemon master na którymkolwiek z węzłów warstwy zewnętrznej bądź wewnętrznej.
+		\item Sprawdzenie uruchomienia na innych węzłach. 
+	\end{enumerate}
+	\item Pobranie pliku konfiguracyjnego.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Wykonanie kopii starego pliku konfiguracyjnego.
+		\item Wywołanie klienta bez parametrów.
+		\item Porównanie starego pliku z nowo pobranym.
+	\end{enumerate}
+	\item Połączenie z serwerami alternatywnymi.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Odłączenie serwera widniejącego na pierwszej pozycji w pliku konfiguracyjnym klienta (klient powinien wybierać kolejne serwery).
+		\item Wykonanie dowolnego zapytania klienta.
+	\end{enumerate}
+	\item Pobieranie danych przez klienta.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Pobranie listy badań (uruchomienie klienta z parametrem ‘list’).
+		\item Pobranie badania o podanym id (uruchomienie klienta z parametrem ‘get’) i sprawdzenie anonimowości danych.
+		\item Wyszukiwanie badań z filtrowaniem (uruchomienie klienta z parametrem ‘search’ i filtrami: nazwa ‘*’, kraj ‘Polska’, płeć ‘M’, rasa ‘*’, minimalny wiek ‘*’, maksymalny wiek ‘*’).
+		\item Umyślne wywołania klienta dla błędnych zapytań. 
+	\end{enumerate}
+	\item Odporność na odłączanie węzłów.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Uruchomienie skryptu pobierającego za pomocą klienta listy badań i zapisującego ją w pliku. 
+		\item Odłączenie węzła warstwy zewnętrznej i węzła warstwy wewnętrznej.
+		\item Ponowne uruchomienie skryptu i porównanie nowo pobranej listy z wcześniejszą.
+	\end{enumerate}
+	\item Odporność na wymianę węzłów.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Uruchomienie usługi z dwoma serwerami warstwy zewnętrznej. 
+		\item Uruchomienie skryptu pobierającego za pomocą klienta listy badań i zapisującego ją w pliku.
+		\item Dołączenie trzeciego węzła warstwy zewnętrznej.
+		\item Odłączenie węzłów działających przed podłączeniem trzeciego węzła.
+		\item Ponowne uruchomienie skryptu i porównanie nowo pobranej listy z wcześniejszą.
+	\end{enumerate}
+	\item Spójność danych.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Wprowadzenie przez klienta wrzucającego dane badania zawierającego plik. 
+		\item Uruchomienie klienta z parametrem list i upewnienie się o dodaniu badania.
+		\item Odłączenie serwera danych skomunikowanego z klientem wrzucającym dane.
+		\item Ponowne wywołanie listy badań i upewnienie się o tym, że wcześniej dodane badanie znajduje się na liście.
+	\end{enumerate}
+	\item Elekcja.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Znalezienie koordynatorów warstwy wewnętrznej i zewnętrznej.
+		\item Odłączenie koordynatorów. 
+		\item Sprawdzenie dowolnej funkcji systemu.  
+	\end{enumerate}
+	\item Elekcja.
+	\begin{enumerate}[label*=\arabic*.]
+		\item Uruchomienie skryptu wywołującego zapytanie (pobierające plik)  klienta 100 razy w normalnych warunkach pracy systemu.
+		\item Uruchomienie wyżej wspomnianego skryptu w warunkach awarii, czyli gdy działa jeden serwer warstwy zewnętrznej i jeden serwer warstwy zewnętrznej.   
+	\end{enumerate}
+	\item Stop usługi
+	\begin{enumerate}[label*=\arabic*.]
+		\item Wywołanie skryptu zamykającego usługę.
+		\item Sprawdzenie zamknięcia na każdym węźle.  
+	\end{enumerate}
+\end{enumerate}
