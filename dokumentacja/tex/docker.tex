@@ -10,7 +10,7 @@ Docker jest narzędziem ułatwiającym proces tworzenia, dystrybucji i wdrażani
 \item \textit{Docker Hub} – oficjalne repozytorium obrazów przechowujące obrazy udostępniane przez użytkowników
 \end{itemize}
 
-	Docker działa w architekturze klient – serwer. Do komunikacji klienta z demonem wykorzystywany jest protokół HTTP i odbywa się ona poprzez gniazda (ang. sockets) lub RESTful API. Klient Dockera jest podstawowym interfejsem komunikacyjnym z Dockerem – przyjmuje komendy z określonego zestawu poleceń wpisywane przez użytkownika i przekazuje je do demona. Demon odpowiada za budowanie obrazów, uruchamianie i dystrybucję kontenerów. Klient i demon mogą działać na tym samym systemie lub ich funkcje mogą zosać rozdzielone pomiędzy różne hosty.
+	Docker działa w architekturze klient – serwer. Do komunikacji klienta z demonem wykorzystywany jest protokół HTTP i odbywa się ona poprzez gniazda (ang. sockets) lub RESTful API. Klient Dockera jest podstawowym interfejsem komunikacyjnym z Dockerem – przyjmuje wpisywane przez użytkownika komendy z określonego zestawu poleceń i przekazuje je do demona. Demon odpowiada za budowanie obrazów, uruchamianie i dystrybucję kontenerów. Klient i demon mogą działać na tym samym systemie lub ich funkcje mogą zostać rozdzielone pomiędzy różne hosty.
 
 Podstawowymi pojęciami Dockera są:
 \begin{itemize}
@@ -21,7 +21,7 @@ Podstawowymi pojęciami Dockera są:
 
 	\textbf{\underline{Obraz}} jest to szablon służący tylko do odczytu, stanowiący podstawę do utworzenia kontenera. Obraz może zawierać np. system operacyjny Ubuntu z serwerem Apache oraz zainstalowaną aplikacją webową, którą chcemy uruchomić. Za pomocą Dockera mamy możliwość budowania nowych obrazów, aktualizowania istniejących, pobierania obrazów stworzonych przez innych i udostępniania własnych. Każdy obraz składa się z warstw tworzących ujednolicony system plików (\textit{ang. UFS}).  Ta technologia powoduje, że obrazy Dockera są lekkie – wprowadzenie zmian w aplikacji nie wiąże się z przebudową całego obrazu, a jedynie z aktualizacją lub dodaniem danej warstwy.
 	
-	Każdy obraz ma obraz bazowy (np. obraz systemu Ubuntu lub obraz utworzony przez użytkownika), na podstawie którego jest budowany za pomocą zestawu instrukcji. Każda instrukcja powoduje dodanie warstwy do naszego obrazu (taką instrukcją może być np. wywołanie komendy, dodanie pliku lub folderu, instalacja pakietu, utworzenie zmiennej środowiskowej). Polecenia tworzące obraz Dockera przechowywane są w pliku Dockerfile. Podczas budowania obrazu Docker odczytuje kod żródłowy zawarty w pliku Dockerfile, wykonuje zapisane instrukcje i zwraca końcowy obraz.
+	Każdy obraz ma obraz bazowy (np. obraz systemu Ubuntu lub obraz utworzony przez użytkownika), na podstawie którego jest budowany za pomocą zestawu instrukcji. Każda instrukcja powoduje dodanie warstwy do naszego obrazu (taką instrukcją może być np. wywołanie komendy, dodanie pliku lub folderu, instalacja pakietu, utworzenie zmiennej środowiskowej). Polecenia tworzące obraz Dockera przechowywane są w pliku Dockerfile. Podczas budowania obrazu Docker odczytuje kod źródłowy zawarty w pliku Dockerfile, wykonuje zapisane instrukcje i zwraca końcowy obraz.
 
 Przykładowe operacje na obrazie:
 \begin{itemize}
@@ -44,7 +44,7 @@ docker  rmi {id lub nazwa obrazu}
 	
 \end{itemize}
 
-	\textbf{\underline{Rejestry}} są miejscem gdzie można udostępniać i skąd można pobierać obrazy. Mogą one być zarówno publiczne, jak i prywatne.  Publiczny rejestr Dockera stanowi Docker Hub zawierający bazę obrazów stworzonych przez użytkowników Dockera. Istnieje również lokalne repozytorium na maszynie użytkownika. Za pomocą klienta Dockera możliwe jest przeszukiwanie opublikowanych obrazów oraz pobieranie ich w celu utworzenia kontenera. 
+	\textbf{\underline{Rejestry}} są miejscem, gdzie można udostępniać i skąd można pobierać obrazy. Mogą one być zarówno publiczne, jak i prywatne.  Publiczny rejestr Dockera stanowi Docker Hub zawierający bazę obrazów stworzonych przez użytkowników Dockera. Istnieje również lokalne repozytorium na maszynie użytkownika. Za pomocą klienta Dockera możliwe jest przeszukiwanie opublikowanych obrazów oraz pobieranie ich w celu utworzenia kontenera. 
 	
 	\textbf{\underline{Kontener}} tworzony jest na podstawie obrazu, który zawiera informacje o tym, co przechowuje kontener, jaki proces ma zostać uruchomiony po jego utworzeniu oraz inne dane konfiguracyjne. Kontener składa się z zestawu ujednoliconych warstw tylko do odczytu, pochodzących z obrazu kontenera oraz z pojedynczej warstwy do odczytu i zapisu umożliwiającej działanie procesów uruchamianych w kontenerze. Na kontenerach można wykonywać podstawowe operacje: uruchomić, zatrzymać, przenieść i usunąć.
 
@@ -52,7 +52,7 @@ Przykładowe operacje na kontenerze
 \begin{itemize}
 \item Tworzenie i uruchamianie kontenera:
 \begin{lstlisting}[style=incode]
-docker runl {nazwa lub id obrazu}
+docker run {nazwa lub id obrazu}
 \end{lstlisting}
 Uruchomienie tego polecenia z parametrem -d powoduje uruchomienie kontenera działającego w tle, natomiast parametr –rm=true powoduje, że kontener zostanie usunięty natychmiast po wykonaniu zadania.
 \item Wyświetlanie wszystkich kontenerów:
@@ -69,7 +69,7 @@ docker rm {id lub nazwa kontenera}
 \end{lstlisting}
 \end{itemize}
 
-	Docker udostępnia również możliwość automatycznego budowania obrazu w synchronizacji z systemem kontroli wersji (GitHub lub Bitbucket). Dzięki umieszczeniu w repozytorium pliku \textit{Dockerfile} oraz powiązaniu konta DockerHub I kontem w wybranym systemie kontroli wersji, po każdorazowej aktualizacji kodu w repozytorium budowany, na jego podstawie budowany jest aktualny obraz Dockera i zapisywany w repozytorium DockerHub.
+	Docker udostępnia również możliwość automatycznego budowania obrazu w synchronizacji z systemem kontroli wersji (GitHub lub Bitbucket). Dzięki umieszczeniu w repozytorium pliku \textit{Dockerfile} oraz powiązaniu konta Docker Hub i kontem w wybranym systemie kontroli wersji, po każdorazowej aktualizacji kodu w repozytorium budowany, na jego podstawie budowany jest aktualny obraz Dockera i zapisywany w repozytorium DockerHub.
 	
 	
 	
@@ -100,7 +100,7 @@ Status: Downloaded newer image for ubuntu:latest
 Hello world
 \end{lstlisting}
 
-Docker przeszukuje dostępne lokalnie obrazy. Jeżeli nie znajduje  danego obrazu lokalnie, wyszukuje i pobiera go z  repozytorium Docker Hub. Następnie uruchamia kontener, wykonuje polecenie wyświetlenia napisu ''Hello world'' I zatrzymuje kontener.
+Docker przeszukuje dostępne lokalnie obrazy. Jeżeli nie znajduje  danego obrazu lokalnie, wyszukuje i pobiera go z  repozytorium Docker Hub. Następnie uruchamia kontener, wykonuje polecenie wyświetlenia napisu ''Hello world'' i zatrzymuje kontener.
 
 
 Aplikację można uruchomić również w trybie interaktywnym, stosując flagi -i -t za pomocą polecenia
@@ -201,8 +201,8 @@ Kolumna \textit{ports} mówi nam o tym, że port 5000 w kontenerze jest odwzorow
 
 Własny obraz można utworzyć na dwa sposoby:
 \begin{itemize}
-\item Poprzez aktualizację kontenera stworzonego na podstawie obrazu oraz zapisanie wprowadzonych zmian do obrazu
-\item Za pomocą pliku \textit{Dockerfile}
+\item poprzez aktualizację kontenera stworzonego na podstawie obrazu oraz zapisanie wprowadzonych zmian do obrazu,
+\item za pomocą pliku \textit{Dockerfile}.
 \end{itemize}
 
  W pierwszym przypadku mamy utworzony kontener na podstawie obrazu i wprowadziliśmy do niego nowe dane, np. zainstalowaliśmy program. Nowy obraz tworzymy za pomocą polecenia:
@@ -212,13 +212,13 @@ $ docker commit -m "Added program" -a "Author" bd625e9176a7 author/ubuntu:v2
 gdzie
 \begin{itemize}
 
-\item \textit{docker commit} – zapisuje stn kontenera w postaci obrazu
+\item \textit{docker commit} – zapisuje stan kontenera w postaci obrazu
 \item \textit{-m} – flaga pozwalająca zapisać co zostało zmienione w obrazie
 \item \textit{-a} – flaga informująca o autorze wprowadzonych zmian
 \item \textit{bd625e9176a7} –  numer ID kontenera, na bazie którego tworzony jest nowy obraz
 \item \textit{author/ubuntu:v2} – nazwa repozytorium oraz znacznik wersji utworzonego obrazu
 \end{itemize}
-Po wywołaniu tego polecenia moemy sprawdzić listę obrazów w lokalnym repozytorium:
+Po wywołaniu tego polecenia możemy sprawdzić listę obrazów w lokalnym repozytorium:
 \begin{lstlisting}[style=incode]
 $ docker images
 REPOSITORY          	TAG                 IMAGE ID            	     CREATED             	
@@ -246,7 +246,7 @@ RUN apt-get update
 RUN apt-get install build-essential 
 RUN apt-get install qt5-default
 \end{lstlisting}
-Plik \textit{Dockerfile} składa się z instrukcji, których nzwy pisane są wielkimi literami poprzedzających polecenia: \textit{INSTRUKCJA polecenie}. Wyjaśnienie instrukcji wykorzystanych w powyższym pliku:
+Plik \textit{Dockerfile} składa się z instrukcji, których nazwy pisane są wielkimi literami, poprzedzających polecenia: \textit{INSTRUKCJA polecenie}. Wyjaśnienie instrukcji wykorzystanych w powyższym pliku:
 \begin{itemize}
 
 \item \textit{FROM ubuntu:14.04} – ta komenda mówi o tym, że obraz bazuje na obrazie systemu ubuntu wersji 14.04
@@ -261,7 +261,7 @@ $ docker build -t author/ubuntu:v2 .
 
 \subsection{Korzystanie z Docker Hub}
 
-Utworzony obraz może zostac udostępniony w repozytorium Docker Hub, a następnie pobrany przez członków naszego zespołu. W tym celu należy się zalogować na swoje konto Docker Hub za pomoc klienta dockera:
+Utworzony obraz może zostać udostępniony w repozytorium Docker Hub, a następnie pobrany przez członków naszego zespołu. W tym celu należy się zalogować na swoje konto Docker Hub za pomocą klienta dockera:
 \begin{lstlisting}[style=incode]
 $ docker login
 \end{lstlisting}
