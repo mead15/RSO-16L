@@ -1,0 +1,257 @@
+\chapter{Testy systemu}
+\label{ap:2}
+
+\section{Opis testów systemu}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{} & Zaliczony: & TAK/NIE \\ \hline
+	1. & & & \multicolumn{2}{|p{310pt}|}{Działanie klienta pobierającego } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Konfiguracja } \\ \hline
+	& & 1. & \multicolumn{2}{|p{310pt}|}{Pobranie konfiguracji } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy lista aktywnych serwerów jest poprawnie pobierana} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Pobranie listy aktywnych serwerów i zapisanie jej jako nowej konfiguracji} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Skopiowanie starej wersji pliku konfiguracyjnego 
+2. Uruchomienie klienta bez parametrów
+3. Sprawdzenie czy plik konfiguracyjny różni się od kopii z 1. punktu (zwłaszcza: czy zawiera więcej niż 1 wpis o serwerach)} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{} & Zaliczony: & TAK/NIE \\ \hline
+	1. & & & \multicolumn{2}{|p{310pt}|}{Działanie klienta pobierającego } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Konfiguracja } \\ \hline
+	& & 2. & \multicolumn{2}{|p{310pt}|}{Łączenie się z zapasowymi serwerami } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy działa połączenie z innymi serwerami jeśli główny serwer jest wyłączony} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Połączenie się z pierwszym serwerem który jest dostępny i pobranie wyniku zapytania} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta bez parametrów (ściągnie się nowa konfiguracja)
+2. Wyłączenie serwera, który widnieje w konfiguracji klienta jako pierwszy
+3. Uruchomienie klienta do pobrania listy badań)} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{FR1} & Zaliczony: & TAK/NIE \\ \hline
+	1. & & & \multicolumn{2}{|p{310pt}|}{Działanie klienta pobierającego } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Pobieranie } \\ \hline
+	& & 1. & \multicolumn{2}{|p{310pt}|}{Pobranie listy badań } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy lista dostępnych badań jest pobierana} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Pobranie listy badań} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{FR2} & Zaliczony: & TAK/NIE \\ \hline
+	1. & & & \multicolumn{2}{|p{310pt}|}{Działanie klienta pobierającego } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Pobieranie } \\ \hline
+	& & 2. & \multicolumn{2}{|p{310pt}|}{Pobranie badania o podanym id } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy pobierane jest wskazane badanie} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Pobranie pliku przypisanego do badania o podanym id} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’ i zapamiętanie jednego z dostępnych numerów id
+2. Uruchomienie klienta z parametrem ‘get’
+3. Sprawdzenie czy pobrany plik to ten o który chodziło} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{FR1} & Zaliczony: & TAK/NIE \\ \hline
+	1. & & & \multicolumn{2}{|p{310pt}|}{Działanie klienta pobierającego } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Pobieranie } \\ \hline
+	& & 3. & \multicolumn{2}{|p{310pt}|}{Wyszukiwanie badań z filtrowaniem } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy działa filtrowanie listy dostępnych badań} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Wyświetlenie listy zawężonej do badań spełniających podane kryteria} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’
+2. Uruchomienie klienta z parametrem ‘search’ i filtrami: nazwa ‘*’, kraj ‘Polska’, płeć ‘M’, rasa ‘*’, minimalny wiek ‘*’, maksymalny wiek ‘*’
+3. Sprawdzenie czy zwrócona lista jest zgodna z zapytaniem z punktu 2
+4. Sprawdzenie czy zwrócona lista odpowiada liście z punktu 1 okrojonej do wpisów spełniających podane kryteria} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{FR3} & Zaliczony: & TAK/NIE \\ \hline
+	1. & & & \multicolumn{2}{|p{310pt}|}{Działanie klienta pobierającego } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Pobieranie } \\ \hline
+	& & 4. & \multicolumn{2}{|p{310pt}|}{Pobranie statystyk z filtrowaniem i grupowaniem } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy pobierane są statystyki spełniające kryteria} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Pobranie statystyk zgodnych z podanym filtrem i odpowiednio pogrupowanych} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘search’ i filtrami: nazwa ‘*’, kraj ‘Polska’, płeć ‘*’, rasa ‘*’, minimalny wiek ‘*’, maksymalny wiek ‘*’
+2. Uruchomienie klienta z parametrem ‘stats’ i filtrami: nazwa ‘*’, kraj ‘Polska’, płeć ‘*’, rasa ‘*’, minimalny wiek ‘*’, maksymalny wiek ‘*’ oraz grupowaniem po płci (‘p’)
+3. Sprawdzenie czy statystyki zgadzają się z wynikami z punktu 1} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{FR2} & Zaliczony: & TAK/NIE \\ \hline
+	1. & & & \multicolumn{2}{|p{310pt}|}{Działanie klienta pobierającego } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Pobieranie } \\ \hline
+	& & 5. & \multicolumn{2}{|p{310pt}|}{Działanie anonimizowania badań } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy pobierane dane są zanonimizowane} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Pobranie pliku xml z usuniętymi danymi osobowymi} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’ i wybranie jednego z dostępnych id
+2. Uruchomienie klienta z parametrem ‘get’ i pobranie pliku xml
+3. Sprawdzenie czy plik ma poprawnie usunięte dane osobowe} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR2} & Zaliczony: & TAK/NIE \\ \hline
+	2. & & & \multicolumn{2}{|p{310pt}|}{Działanie serwerów } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Dołączanie, odłączanie serwerów } \\ \hline
+	& & 1. & \multicolumn{2}{|p{310pt}|}{Odłączenie jednego serwera warstwy zewnętrznej } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa po odłączeniu jednego z serwerów warstwy zewnętrznej} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Odłączenie serwera nie wpływa na poprawne działanie usługi} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’ i zapamiętanie listy
+2. Odłączenie jednego z serwerów warstwy zewnętrznej (np. tego który jest pierwszy w pliku konfiguracyjnym klienta)
+3. Uruchomienie klienta z parametrem ‘list’ i porównanie wyniku z punktem 1} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR2} & Zaliczony: & TAK/NIE \\ \hline
+	2. & & & \multicolumn{2}{|p{310pt}|}{Działanie serwerów } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Dołączanie, odłączanie serwerów } \\ \hline
+	& & 2. & \multicolumn{2}{|p{310pt}|}{Odłączenie jednego serwera danych } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa po odłączeniu jednego z serwerów danych} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Odłączenie serwera nie wpływa na poprawne działanie usługi} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’ i zapamiętanie listy
+2. Odłączenie jednego z serwerów danych
+3. Uruchomienie klienta z parametrem ‘list’ i porównanie wyniku z punktem 1} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR4} & Zaliczony: & TAK/NIE \\ \hline
+	2. & & & \multicolumn{2}{|p{310pt}|}{Działanie serwerów } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Dołączanie, odłączanie serwerów } \\ \hline
+	& & 3. & \multicolumn{2}{|p{310pt}|}{Wymiana serwerów } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa po całkowitej wymianie serwerów jednej z warstw} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Wymiana serwerów nie wpływa na poprawne działanie usługi} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie usługi z 2 serwerami warstwy zewnętrznej (spośród 3)
+2. Uruchomienie klienta z parametrem ‘list’ i zapamiętanie listy
+3. Dołączenie brakującego serwera i odpięcia pozostałych dwóch
+4. Uruchomienie klienta z parametrem ‘list’ i porównanie wyniku z punktem 1} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR4} & Zaliczony: & TAK/NIE \\ \hline
+	2. & & & \multicolumn{2}{|p{310pt}|}{Działanie serwerów } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Dołączanie, odłączanie serwerów } \\ \hline
+	& & 4. & \multicolumn{2}{|p{310pt}|}{Pozostawienie po 1 serwerze każdej warstwy } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa po jeśli zostało tylko po jednym serwerze każdej z warstw} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Odłączenie serwerów nie wpływa na poprawne działanie usługi} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta i pobranie listy
+2. Odłączenie serwerów (zostaje po jednym dla każdej z warstw)
+3. Uruchomienie klienta i pobranie listy} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR6} & Zaliczony: & TAK/NIE \\ \hline
+	2. & & & \multicolumn{2}{|p{310pt}|}{Działanie serwerów } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Spójność danych } \\ \hline
+	& & 1. & \multicolumn{2}{|p{310pt}|}{Odłączenie serwera danych } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy dane są spójne po przełączeniu się na inny serwer danych} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Dane są spójne} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta wrzucającego dane i wrzucenie 1 badania z plikiem
+2. Uruchomienie klienta z parametrem ‘list’ i zapamiętanie listy (należy upewnić się że na liście jest nowo dodany plik)
+3. Odłączenie serwera danych (najlepiej tego, do którego łączył się klient wrzucający)
+4. Uruchomienie klienta z parametrem ‘list’ i porównanie wyniku z punktem 2} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR3} & Zaliczony: & TAK/NIE \\ \hline
+	2. & & & \multicolumn{2}{|p{310pt}|}{Działanie serwerów } \\ \hline
+	& 3. & & \multicolumn{2}{|p{310pt}|}{Elekcja } \\ \hline
+	& & 1. & \multicolumn{2}{|p{310pt}|}{Odłączenie koordynatora warstwy zewnętrznej } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa po odłączeniu koordynatora warstwy zewnętrznej} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Usługa działa poprawnie} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie usługi i sprawdzenie który z serwerów jest koordynatorem
+2. Odłączenie koordynatora} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR3} & Zaliczony: & TAK/NIE \\ \hline
+	2. & & & \multicolumn{2}{|p{310pt}|}{Działanie serwerów } \\ \hline
+	& 3. & & \multicolumn{2}{|p{310pt}|}{Elekcja } \\ \hline
+	& & 2. & \multicolumn{2}{|p{310pt}|}{Odłączenie koordynatora warstwy danych } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa po odłączeniu koordynatora warstwy danych} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Usługa działa poprawnie} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie usługi i sprawdzenie który z serwerów jest koordynatorem
+2. Odłączenie koordynatora} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR12} & Zaliczony: & TAK/NIE \\ \hline
+	3. & & & \multicolumn{2}{|p{310pt}|}{Wymagania niefunkcjonalne } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Obsłużenie 100 użytkowników jednocześnie } \\ \hline
+	& & 1. & \multicolumn{2}{|p{310pt}|}{Zapewnienie działania przy normalnej pracy } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa po odłączeniu koordynatora warstwy danych} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Usługa działa poprawnie} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’ i wybranie jednego z id
+2. Włączenie 100 razy (najlepiej współbieżnie) klienta z parametrem ‘get’
+3. Sprawdzenie czy każdy klient otrzymał spodziewany plik} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR12} & Zaliczony: & TAK/NIE \\ \hline
+	3. & & & \multicolumn{2}{|p{310pt}|}{Wymagania niefunkcjonalne } \\ \hline
+	& 1. & & \multicolumn{2}{|p{310pt}|}{Obsłużenie 100 użytkowników jednocześnie } \\ \hline
+	& & 2. & \multicolumn{2}{|p{310pt}|}{Zapewnienie działania w czasie awarii } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa działa dla 100 jednoczesnych zapytań gdy pracuje po jednym serwerze z każdej warstwy} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Usługa działa poprawnie} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Uruchomienie klienta z parametrem ‘list’ i wybranie jednego z id
+2. Włączenie klienta z parametrem ‘get’ i zapamiętanie pliku
+3. Wyłączenie prawie wszystkich serwerów (zostaje po 1 serwerze każdej warstwy)
+4. Włączenie 100 razy (najlepiej współbieżnie) klienta z parametrem ‘get’
+5. Sprawdzenie czy każdy klient otrzymał poprawny plik} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR11} & Zaliczony: & TAK/NIE \\ \hline
+	3. & & & \multicolumn{2}{|p{310pt}|}{Wymagania niefunkcjonalne } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Start i stop usługi } \\ \hline
+	& & 1. & \multicolumn{2}{|p{310pt}|}{Start usługi } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa uruchomi się po wydaniu polecenia na dowolnym z węzłów} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Usługa uruchamia się na każdym z węzłów} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Włączenie usługi na jednym z węzłów
+2. Sprawdzenie czy usługa jest włączona na każdym z węzłów} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
+
+\begin{tabular}{|p{20pt}|p{20pt}|p{20pt}|p{250pt}|p{60pt}|}
+	\hline
+	\multicolumn{3}{|p{70pt}|}{NFR11} & Zaliczony: & TAK/NIE \\ \hline
+	3. & & & \multicolumn{2}{|p{310pt}|}{Wymagania niefunkcjonalne } \\ \hline
+	& 2. & & \multicolumn{2}{|p{310pt}|}{Start i stop usługi } \\ \hline
+	& & 2. & \multicolumn{2}{|p{310pt}|}{Stop usługi } \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Co sprawdza} & \multicolumn{2}{|p{310pt}|}{Czy usługa wyłączy się po wydaniu polecenia na dowolnym z węzłów} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Spodziewany efekt} & \multicolumn{2}{|p{310pt}|}{Usługa wyłącza się na każdym z węzłów i zwalnia zajęte porty} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Jak wykonać} & \multicolumn{2}{|p{310pt}|}{1. Włączenie usługi
+2. Wydanie polecenia zatrzymania usługi na dowolnym z węzłów (najlepiej na innym niż włączenie usługi)
+3. Sprawdzenie czy na każdym węźle usługa jest wyłączona i czy porty są zwolnione
+4. Ponowne włączenie usługi i sprawdzenie czy start jest bezproblemowy} \\ \hline
+	\multicolumn{3}{|p{70pt}|}{Faktyczny efekt} & \multicolumn{2}{|p{310pt}|}{} \\ \hline
+\end{tabular}
