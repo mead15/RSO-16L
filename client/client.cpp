@@ -49,10 +49,10 @@ void Client::receive()
 
 void Client::handle(QStringList what)
 {
-    settings->clear();
     if(what.at(0) == "ACTIVE_SERVERS")
     {
         int num = what.at(1).toInt();
+        settings->clear();
         servers_->clear();
         for(int i=0; i< num; ++i)
         {
