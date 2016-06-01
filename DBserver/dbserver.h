@@ -16,6 +16,7 @@
 #include <QHostAddress>
 #include <QTime>
 #include <QCoreApplication>
+#include <QFile>
 
 class dbServer : public QObject
 {
@@ -33,6 +34,8 @@ public:
         int time;
     };
 
+    static QString logFile;
+
 public slots:
     void frameExtRecived(QTcpSocket*socket, QStringList msg);
     void frameDBRecived(QTcpSocket*socket, QStringList msg);
@@ -41,7 +44,7 @@ public slots:
     void frameDBRecivedError(QString error, QString ip);
     void frameClientRecivedError(QString error, QString ip);
     void stop();
-    void log(QString what);
+    void log(QString text);
 
 private:
     void mainLoop();

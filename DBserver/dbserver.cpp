@@ -1,6 +1,7 @@
 #include "dbserver.h"
 
 dbServer::dbServer(int extPort, int dbPort, int clientPort){
+    this->log("init server, exxtPort: " + QString::number(extPort) + " dbPort: " + QString::number(dbPort) + " clientPort: " + QString::number(clientPort));
     lastAskingTime = QTime::currentTime().addSecs( - Configuration::getInstance().interval() - 1);
     lastBeingAskedTime = QTime::currentTime();
     std::cout<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
@@ -26,12 +27,13 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
 }
 
 void dbServer::start(){
+    this->log("Start server");
     running = true;
     extPortListener->start();
     dbPortListener->start();
     clientPortListener->start();
     while(running){
-        std::cout<<"loop"<<std::endl;
+        this->log("loop");
         mainLoop();
     }
 
@@ -61,6 +63,7 @@ void dbServer::mainLoop(){
 }
 
 void dbServer::frameExtRecived(QTcpSocket* socket, QStringList msg){
+    log("extFrame: " + msg.join(","));
     Request r;
     r.msg = msg;
     r.socket = socket;
@@ -68,6 +71,7 @@ void dbServer::frameExtRecived(QTcpSocket* socket, QStringList msg){
 }
 
 void dbServer::frameDBRecived(QTcpSocket*socket, QStringList msg){
+    log("dbFrame: " + msg.join(","));
     Request r;
     r.msg = msg;
     r.socket = socket;
@@ -75,6 +79,7 @@ void dbServer::frameDBRecived(QTcpSocket*socket, QStringList msg){
 }
 
 void dbServer::frameClientRecived(QTcpSocket*socket, QStringList msg){
+    log("client Frame: " + msg.join(","));
     std::cout<<"recived from client"<<std::endl;
     LamportRequest r;
     r.msg = msg;
@@ -106,6 +111,7 @@ void dbServer::frameExtRecivedError(QString error, QString ip){
 }
 
 void dbServer::frameDBRecivedError(QString error, QString ip){
+    log("error: " + error);
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
         if(i.value().getIp()==ip && i.value().isActive()){
@@ -125,9 +131,16 @@ void dbServer::stop(){
     running = false;
 }
 
-void dbServer::log(QString what)
+QString dbServer::logFile="log.txt";
+
+void dbServer::log(QString text)
 {
-    std::cout << what.toStdString() << std::endl;
+    QFile file(logFile);
+    file.open(QIODevice::Append);
+    QTextStream out(&file);
+    out <<QTime::currentTime().toString()<<": "<< text <<"\n";
+    file.flush();
+    file.close();
 }
 
 void dbServer::masterAction(){
@@ -137,6 +150,7 @@ void dbServer::masterAction(){
     }
     else{
         if(lastBeingAskedTime.secsTo(QTime::currentTime())> 2 * Configuration::getInstance().interval())
+            log("no master!");
             startElection();
     }
 }
@@ -146,6 +160,7 @@ void dbServer::startElection(){
 }
 
 void dbServer::askForState(){
+    log("ask for state");
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
         dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::STATUS), i.value().getPubKey());
@@ -153,6 +168,7 @@ void dbServer::askForState(){
 }
 
 QStringList dbServer::getDBState(){
+    log("read DB servers state");
     QVector<int> active = Configuration::getInstance().getActiveDBServers();
     QStringList result;
     for (auto i = active.begin(); i!=active.end(); i++){
@@ -162,6 +178,7 @@ QStringList dbServer::getDBState(){
 }
 
 void dbServer::sendDBStateToAll(){
+    log("propagate DB servers state");
     QStringList state = getDBState();
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
@@ -193,6 +210,7 @@ void dbServer::status(Request& r, int sender){
 }
 
 void dbServer::statusOK(Request& r, int sender){
+    log(QString::number(sender) + " is OK");
     if(Configuration::getInstance().isMaster()){
         if(!Configuration::getInstance().getDBServer(sender).isActive()){
             Configuration::getInstance().setServerActive(sender, true);
@@ -230,6 +248,7 @@ void dbServer::unlink(Request& r, int sender){
 }
 
 void dbServer::getActiveServersDB(Request& r, int sender){
+    log("send active db servers to ext server: " + QString::number(sender));
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     QStringList result;
     for (auto i = servers.begin(); i!=servers.end(); i++){
@@ -240,6 +259,7 @@ void dbServer::getActiveServersDB(Request& r, int sender){
 }
 
 void dbServer::activeServersDB(Request& r, int sender){
+    log("recived active servers from: " + QString::number(sender));
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
         if(r.msg.contains(QString::number(i.key())))
