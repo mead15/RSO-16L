@@ -55,6 +55,7 @@ private:
     void frameClientAnalyze(Request r);
     void askForState();
     QStringList getExtState();
+    QStringList getDBState();
     void sendExtStateToAll();
     void sendNewMasterToAll();
 

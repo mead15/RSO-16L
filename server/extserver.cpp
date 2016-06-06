@@ -57,7 +57,6 @@ void extServer::start(){
     dbPortListener->start();
     clientPortListener->start();
     while(running){
-        //this->log("loop");
         mainLoop();
     }
 }
@@ -148,7 +147,20 @@ void extServer::frameExtReceivedError(QString ip, QString error){
 }
 
 void extServer::frameDBReceivedError(QString ip, QString error){
-
+    log("FrameDB error: " + error);
+    QMap<int, SServer> dbServers = Configuration::getInstance().getDBServers();
+    for (auto i = dbServers.begin(); i!=dbServers.end(); i++){
+        if(i.value().getIp()==ip && i.value().isActive()){
+            Configuration::getInstance().setServerActive(i.key(), false);
+            QStringList state = getDBState();
+            log("Propagate DBServers state");
+            QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
+            for (auto i = servers.begin(); i!=servers.end(); i++){
+                extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state), i.value().getPubKey());
+            }
+            return;
+        }
+    }
 }
 
 void extServer::frameClientReceivedError(QString ip, QString error){
@@ -181,6 +193,7 @@ void extServer::masterAction(){
 }
 
 void extServer::startElection(){
+    log("ExtServers:: START ELECTION!");
     QVector<int> active = Configuration::getInstance().getActiveExtServers();
     if(active.size() == 1){
         Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
@@ -214,6 +227,16 @@ void extServer::askForState(){
 QStringList extServer::getExtState(){
     log("Read  ExtServers state");
     QVector<int> active = Configuration::getInstance().getActiveExtServers();
+    QStringList result;
+    for (auto i = active.begin(); i!=active.end(); i++){
+           result << QString::number(*i);
+    }
+    return result;
+}
+
+QStringList extServer::getDBState(){
+    log("Read  DBServers state");
+    QVector<int> active = Configuration::getInstance().getActiveDBServers();
     QStringList result;
     for (auto i = active.begin(); i!=active.end(); i++){
            result << QString::number(*i);
@@ -279,6 +302,7 @@ void extServer::election(Request& r, int sender){
 }
 
 void extServer::electionStop(Request& r, int sender){
+    log("ExtServers:: Election Stop!");
     isMasterCandidate = false;
 }
 
@@ -312,15 +336,14 @@ void extServer::activeServersExt(Request& r, int sender){
 
 void extServer::activeServersDB(Request& r, int sender){
     if(Configuration::getInstance().isMaster()) {
-        log("Received active DBServers from: (DBServer)" + QString::number(sender));
-        log("Propagate DBServers state");
+        log("Received active DBServers from: (DBServer)" + QString::number(sender) + " and propagate DBServers state");
         QStringList result;
         for(int i = 2; i < r.msg.size(); i++){
             result << r.msg.at(i);
         }
         QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
         for (auto i = servers.begin(); i!=servers.end(); i++){
-            dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_EXT, result), i.value().getPubKey());
+            dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_DB, result), i.value().getPubKey());
         }
     } else {
         log("Received active DBServers from: (myMaster)" + QString::number(sender));
