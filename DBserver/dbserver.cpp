@@ -4,6 +4,7 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     this->log("init server, exxtPort: " + QString::number(extPort) + " dbPort: " + QString::number(dbPort) + " clientPort: " + QString::number(clientPort));
     lastAskingTime = QTime::currentTime().addSecs( - Configuration::getInstance().interval() - 1);
     lastBeingAskedTime = QTime::currentTime();
+    lockalTime =0;
     std::cout<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
     extPortListener = new CipherAdapter(extPort);
     dbPortListener = new CipherAdapter(dbPort);
@@ -22,7 +23,13 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     dbFunctionMap[FrameType::STATUS] = &dbServer::status;
     dbFunctionMap[FrameType::SERVER_STATUS_OK] = &dbServer::statusOK;
     dbFunctionMap[FrameType::ACTIVE_SERVERS_DB] = &dbServer::activeServersDB;
-
+    dbFunctionMapLR[FrameType::UPLOAD] = &dbServer::upload;
+    dbFunctionMapLR[FrameType::INSERT] = &dbServer::insert;
+    dbFunctionMapLR[FrameType::ATTACH] = &dbServer::attach;
+    dbFunctionMapLR[FrameType::DELETE] = &dbServer::deletion;
+    dbFunctionMapLR[FrameType::UNLINK] = &dbServer::unlink;
+    dbFunctionMap[FrameType::OK] = &dbServer::okReceived;
+    
     extFunctionMap[FrameType::GET_ACTIVE_SERVERS_DB] = &dbServer::getActiveServersDB;
 }
 
@@ -36,11 +43,10 @@ void dbServer::start(){
         this->log("loop");
         mainLoop();
     }
-
 }
 
 void dbServer::mainLoop(){
-    if(this->clientQueue.isEmpty() || this->extQueue.isEmpty() || this->dbQueue.isEmpty()){
+    if(this->clientQueue.isEmpty() && this->extQueue.isEmpty() && this->dbQueue.isEmpty() && this->dbQueueModify.isEmpty()){
         QTime dieTime= QTime::currentTime().addSecs(5);
         while (QTime::currentTime() < dieTime)
             QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
@@ -58,8 +64,12 @@ void dbServer::mainLoop(){
             frameClientAnalyze(clientQueue.first());
             clientQueue.pop_front();
         }
-        masterAction();
+        if(!this->dbQueueModify.isEmpty()){
+            frameDBAnalyze(dbQueueModify.first());
+            dbQueueModify.pop_front();
+        }
     }
+    masterAction();
 }
 
 void dbServer::frameExtRecived(QTcpSocket* socket, QStringList msg){
@@ -72,20 +82,29 @@ void dbServer::frameExtRecived(QTcpSocket* socket, QStringList msg){
 
 void dbServer::frameDBRecived(QTcpSocket*socket, QStringList msg){
     log("dbFrame: " + msg.join(","));
-    Request r;
-    r.msg = msg;
-    r.socket = socket;
-    this->dbQueue.append(r);
+    if (msg.size()>3 && (QStringList() << FrameType::UPLOAD << FrameType::INSERT << FrameType::ATTACH << FrameType::DELETE << FrameType::UNLINK).contains(msg[1])){
+        int timeStamp = msg[2].toInt();
+        synchronizeClock(timeStamp);
+        LamportRequest r;
+        r.msg = QStringList() << msg[0] << msg[1] << msg[3];
+        r.socket = socket;
+        r.time = timeStamp;
+        requestOrder(r);
+    }
+    else{
+        Request r;
+        r.msg = msg;
+        r.socket = socket;
+        this->dbQueue.append(r);
+    }
 }
 
 void dbServer::frameClientRecived(QTcpSocket*socket, QStringList msg){
     log("client Frame: " + msg.join(","));
     std::cout<<"recived from client"<<std::endl;
-    LamportRequest r;
+    Request r;
     r.msg = msg;
     r.socket = socket;
-    // r.time = current time
-    // add in good position
     this->clientQueue.append(r);
 }
 
@@ -95,15 +114,35 @@ void dbServer::frameExtAnalyze(Request &r){
     (this->*(extFunctionMap[type]))(r, sender);
 }
 
-void dbServer::frameDBAnalyze(Request r){
+void dbServer::frameDBAnalyze(Request & r){
     int sender = r.msg[0].toInt();
-    QString type = r.msg[1];
+    QString type;
+    if (r.msg[2] == "OK")
+        type = "OK";
+    else       
+        type = r.msg[1];
     (this->*(dbFunctionMap[type]))(r, sender);
 }
 
-void dbServer::frameClientAnalyze(LamportRequest r){
-    QString type = r.msg[0];
-    (this->*(dbFunctionMap[type]))(r, 0);
+void dbServer::frameDBAnalyze(LamportRequest & r){
+    int sender = r.msg[0].toInt();
+    QString type = r.msg[1];
+    (this->*(dbFunctionMapLR[type]))(r, sender);
+}
+
+void dbServer::frameClientAnalyze(Request & r){
+    LamportRequest rL;
+    rL.msg = QStringList() << "0" << r.msg;
+    rL.socket = r.socket;
+    rL.time = lockalTime;
+    lockalTime +=1;
+    QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+    clientSocketMap[rL.time] = rL.socket;
+    responseNumMap[rL.time] = servers.size() + 1; //ilość koniecznych potwiedzeń zapisu (wszystkie serwery + ja)
+    requestOrder(rL);
+    for (auto i = servers.begin(); i!=servers.end(); i++){
+        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(r.msg, rL.time), i.value().getPubKey());
+    }
 }
 
 void dbServer::frameExtRecivedError(QString error, QString ip){
@@ -126,6 +165,22 @@ void dbServer::frameClientRecivedError(QString error, QString ip){
 
 }
 
+void dbServer::synchronizeClock(int timeStamp){
+    if (lockalTime <= timeStamp){
+        lockalTime = timeStamp + 1;
+    }
+}
+
+void dbServer::requestOrder(LamportRequest r){
+    for (int i = 0; i<dbQueueModify.size(); i++){
+        if(this->dbQueueModify[i].time > r.time){
+            this->dbQueueModify.insert(i-1, r);
+            return;
+        }
+    }
+    this->dbQueueModify.append(r);
+
+}
 
 void dbServer::stop(){
     running = false;
@@ -186,6 +241,10 @@ void dbServer::sendDBStateToAll(){
     }
 }
 
+QStringList dbServer::makeFrame(QStringList data, int timeStamp){
+    return QStringList() << QString::number(Configuration::getInstance().myNum()) << QString::number(timeStamp) << data;
+}
+
 QStringList dbServer::makeFrame(QString frameType, QStringList data){
     return QStringList() << QString::number(Configuration::getInstance().myNum()) << frameType << data;
 }
@@ -227,24 +286,43 @@ void dbServer::coordinator(Request& r, int sender){
 
 }
 
-void dbServer::upload(Request& r, int sender){
+void dbServer::upload(LamportRequest & r, int sender){
 
 }
 
-void dbServer::insert(Request& r, int sender){
+void dbServer::insert(LamportRequest & r, int sender){
 
 }
 
-void dbServer::attach(Request& r, int sender){
+void dbServer::attach(LamportRequest & r, int sender){
 
 }
 
-void dbServer::deletion(Request& r, int sender){
+void dbServer::deletion(LamportRequest & r, int sender){
 
 }
 
-void dbServer::unlink(Request& r, int sender){
+void dbServer::unlink(LamportRequest & r, int sender){
 
+}
+
+void dbServer::okReceived(Request& r, int sender){
+   int stamp = r.msg[3].toInt();
+   if (responseNumMap.contains(stamp)){
+        log("received OK (db operation completed) from: " + QString::number(sender) + "time stamp: " +  QString::number(stamp));
+        int toReceive = responseNumMap[stamp];
+        toReceive -= 1;
+        if (toReceive == 0){
+            QString type = r.msg[1];
+            log("send client frame: " + type + ", OK");
+            clientPortListener->sendFrame(clientSocketMap[stamp],makeClientFrame(type,QStringList() << "OK"));
+            responseNumMap.remove(stamp);
+            clientSocketMap.remove(stamp);
+        }
+        else{
+            responseNumMap[stamp] = toReceive;
+        }
+   }
 }
 
 void dbServer::getActiveServersDB(Request& r, int sender){
@@ -279,25 +357,5 @@ void dbServer::getResult(Request& r, int sender){
 }
 
 void dbServer::getStatistics(Request& r, int sender){
-
-}
-
-void dbServer::uploadClient(Request& r, int sender){
-
-}
-
-void dbServer::insertClient(Request& r, int sender){
-
-}
-
-void dbServer::attachClient(Request& r, int sender){
-
-}
-
-void dbServer::deletionClient(Request& r, int sender){
-
-}
-
-void dbServer::unlinkClient(Request& r, int sender){
 
 }
