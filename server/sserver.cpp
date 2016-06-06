@@ -1,22 +1,17 @@
 #include "sserver.h"
 
-SServer::SServer() : name(""), ip(""), port(0) {}
-
-SServer::SServer(std::string name, std::string ip, int port, int portDB, int portClient)
+SServer::SServer(int num, QString ip, int portExt, int portDB, int portClient, QString pubKey, SrvType type):
+    num_(num), ip_(ip), portExt_(portExt), portDB_(portDB), portClient_(portClient), pubKey_(pubKey),
+    active_(false), type_(type)
 {
-    this->name = name;
-    this->ip = ip;
-    this->port = port;
-    this->portDB = portDB;
-    this->portClient = portClient;
 }
 
 bool SServer::operator==(const SServer &other)
 {
-    return (ip == other.ip) && (port == other.port);
+    return num_ == other.num_;
 }
 
-QDebug operator<<(QDebug qdb, SServer srv) {
-    qdb << "Server ( name:" << QString::fromStdString(srv.getName()) << " addressIP:" << QString::fromStdString(srv.getIp()) << " port/portDB/portClient:" << srv.getPort() << srv.getPortDB() << srv.getPortClient()<< ")";
-    return qdb;
-}
+//QDebug operator<<(QDebug qdb, SServer srv) {
+//    qdb << "Server ( name:" << QString::fromStdString(srv.getName()) << " addressIP:" << QString::fromStdString(srv.getIp()) << " port/portDB/portClient:" << srv.getPort() << srv.getPortDB() << srv.getPortClient()<< ")";
+//    return qdb;
+//}

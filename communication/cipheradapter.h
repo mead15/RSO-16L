@@ -19,14 +19,14 @@ private:
 signals:
     void frameContent(QTcpSocket*, QStringList);
     void log(QString);
-    void error(QString);    //todo; QString albo int
+    void error(QString, QString);    //todo; QString albo int
 public slots:
     void sendFrame(QHostAddress recipient, int port, QStringList content, QString key);
     void sendFrame(QTcpSocket* recipient, QStringList content, QString key);
 private slots:
     void catchFrameContent(QTcpSocket* socket, QStringList content);
     void catchLog(QString content);
-    void catchError(QString content);
+    void catchError(QString recipient, QString content);
 
 };
 
