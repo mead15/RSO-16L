@@ -12,23 +12,23 @@ TEMPLATE = app
 SOURCES += main.cpp \
     sserver.cpp \
     bullyalgorithm.cpp \
-    listenmodule.cpp \
-    servserverlisten.cpp \
     configuration.cpp \
     ../communication/cipheradapter.cpp \
     ../communication/rsaencrypter.cpp \
-    ../communication/tcpserver.cpp
+    ../communication/tcpserver.cpp \
+    frametype.cpp \
+    extserver.cpp
 
 HEADERS += \
     sserver.h \
     bullyalgorithm.h \
-    listenmodule.h \
-    servserverlisten.h \
     frametype.h \
     configuration.h \
     ../communication/cipheradapter.h \
     ../communication/rsaencrypter.h \
-    ../communication/tcpserver.h
+    ../communication/tcpserver.h \
+    srvtype.h \
+    extserver.h
 
 DISTFILES += \
     settings.ini
