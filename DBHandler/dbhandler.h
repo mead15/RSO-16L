@@ -15,7 +15,7 @@ class DBHandler
 public:
     DBHandler();
     DBHandler(QString host, QString dbname, QString user, QString password, int port);
-    bool fetch(QString q, QVector<QStringList> & result, QString & error);
+    bool execQuery(QString q, QVector<QStringList> & result, QString & error);
     bool openDB();
     void closeDB();
     bool transaction();

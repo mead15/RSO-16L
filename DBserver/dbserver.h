@@ -4,6 +4,7 @@
 #include <QObject>
 #include "../communication/cipheradapter.h"
 #include "../communication/tcpserver.h"
+#include "../DBHandler/dbhandler.h"
 #include "configuration.h"
 #include <QQueue>
 #include <QStringList>
@@ -17,6 +18,7 @@
 #include <QTime>
 #include <QCoreApplication>
 #include <QFile>
+#include <QProcess>
 
 class dbServer : public QObject
 {
@@ -70,6 +72,8 @@ private:
     QQueue<LamportRequest> dbQueueModify;
     QQueue<Request> clientQueue;
 
+    DBHandler* dbh;
+
     CipherAdapter* extPortListener;
     CipherAdapter* dbPortListener;
     TcpServer* clientPortListener;
@@ -104,6 +108,7 @@ private:
     void getResult(Request& r, int sender);
     void getStatistics(Request& r, int sender);
 
+    void sendErrorFrame(Request &r, int sender, int code);
 };
 
 #endif // SERVSERVERLISTEN_H
