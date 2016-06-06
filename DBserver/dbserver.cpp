@@ -31,6 +31,8 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     dbFunctionMap[FrameType::OK] = &dbServer::okReceived;
     
     extFunctionMap[FrameType::GET_ACTIVE_SERVERS_DB] = &dbServer::getActiveServersDB;
+
+    dbh = new DBHandler("localhost", "rso", "postgres", "haslord", 5432);
 }
 
 void dbServer::start(){
@@ -287,23 +289,126 @@ void dbServer::coordinator(Request& r, int sender){
 }
 
 void dbServer::upload(LamportRequest & r, int sender){
+    bool clients = (sender == 0);
+    QString tmp = clients ? r.msg[2] : r.msg[3];
+    QByteArray archive = QByteArray::fromBase64(tmp.toUtf8());
+    QString fname = "/ex_tmp/archive.zip";
+    QFile file(fname);
+    file.open(QIODevice::WriteOnly);
+    file.write(archive);
+    file.close();
 
+    QProcess proc;
+    proc.start("unzip", QStringList() << fname);
+    if (!proc.waitForFinished() && proc.exitCode() != 0){
+        sendErrorFrame(r, sender, 666);
+    } else {
+        file.remove();
+        proc.start("psql -d dbname -f /ex_tmp/filename.sql");
+        if (!proc.waitForFinished() && proc.exitCode() != 0) {
+            sendErrorFrame(r, sender, 666);
+        } else {
+            proc.start("cp -rf /ex_tmp/data/ /ex_data/");
+            if (!proc.waitForFinished() && proc.exitCode() != 0){
+                sendErrorFrame(r, sender, 666);
+            }
+        }
+    }
+    proc.start("rm -rf /ex_tmp/");
+    if (!proc.waitForFinished() && proc.exitCode() != 0) {
+        sendErrorFrame(r, sender, 666);
+    }
+    if(clients)
+        clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::UPLOAD, QStringList() << "OK" << r.msg[1]));
+    else
+        dbPortListener->sendFrame(r.socket, makeFrame(FrameType::UPLOAD, QStringList() << "OK" << r.msg[2]), Configuration::getInstance().getDBServer(sender).getPubKey());
 }
 
 void dbServer::insert(LamportRequest & r, int sender){
-
+    bool clients = (sender == 0);
+    QString table = clients ? r.msg[2] : r.msg[3];
+    QString error;
+    QVector<QStringList> result;
+    int index = sender ? 3 : 4;
+    QStringList values;
+    for (int i = index; i < r.msg.size(); i++){
+       if (r.msg[i] == "NULL" || r.msg[i] == "null")
+           values << r.msg[i];
+       else
+           values << "'"+r.msg[i]+"'";
+    }
+    if (table == "patient") {
+        if(dbh->openDB()){
+            if (!dbh->execQuery("INSERT INTO patient(id, pesel, name, last_name, tel, sex, race, birth_date, birth_city, country) VALUES ("+values.join(',')+");",
+                            result, error))
+                sendErrorFrame(r, sender, 666);
+            dbh->closeDB();
+        }
+    } else if (table == "examination") {
+        if(dbh->openDB()){
+            if (!dbh->execQuery("INSERT INTO examination(id, patient_id, name, result_path, date) VALUES ("+values.join(',')+");",
+                            result, error))
+                sendErrorFrame(r,sender, 666);
+            dbh->closeDB();
+        }
+    } else {
+        sendErrorFrame(r, sender, 666);
+    }
+    if(clients)
+        clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::INSERT, QStringList() << "OK" << r.msg[1]));
+    else
+        dbPortListener->sendFrame(r.socket, makeFrame(FrameType::INSERT, QStringList() << "OK" << r.msg[2]), Configuration::getInstance().getDBServer(sender).getPubKey());
 }
 
 void dbServer::attach(LamportRequest & r, int sender){
-
+    bool clients = (sender == 0);
+    QString fname = clients ? r.msg[1] : r.msg[2];
+    QRegExp rx("*.bmp|*.xml");
+    if (rx.exactMatch(fname)){
+        QByteArray content = QByteArray::fromBase64(r.msg[2].toUtf8());
+        QFile file(fname);
+        file.open(QIODevice::WriteOnly);
+        file.write(content);
+        file.close();
+        if (clients)
+            clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::ATTACH, QStringList() << "OK" << r.msg[1]));
+        else
+            dbPortListener->sendFrame(r.socket, makeFrame(FrameType::ATTACH, QStringList() << "OK"), Configuration::getInstance().getExtServer(sender).getPubKey());
+    } else {
+        sendErrorFrame(r, sender, 666);
+    }
 }
 
 void dbServer::deletion(LamportRequest & r, int sender){
-
+    bool clients = (sender==0);
+    QString table = clients ? r.msg[2] : r.msg[3];
+    QString id = clients ? r.msg[3] : r.msg[4];
+    QString error;
+    QVector<QStringList> result;
+    if (dbh->openDB()){
+        if (dbh->execQuery("DELETE FROM "+table+"WHERE ID = "+id+";", result, error)){
+            if (clients)
+                clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::DELETE, QStringList() << "OK" << r.msg[1]));
+            else
+                dbPortListener->sendFrame(r.socket, makeFrame(FrameType::DELETE, QStringList() << "OK" << r.msg[2]), Configuration::getInstance().getExtServer(sender).getPubKey());
+        } else
+            sendErrorFrame(r, sender,666);
+    }
 }
 
 void dbServer::unlink(LamportRequest & r, int sender){
-
+    bool clients = (sender == 0);
+    QString fileName = clients ? r.msg[1] : r.msg[2];
+    QFile file(fileName);
+    if (file.remove()) {
+        // update db?
+        if (clients)
+            extPortListener->sendFrame(r.socket, makeClientFrame(FrameType::UNLINK, QStringList() << "OK"), Configuration::getInstance().getExtServer(sender).getPubKey());
+        else
+            extPortListener->sendFrame(r.socket, makeFrame(FrameType::UNLINK, QStringList() << "OK"), Configuration::getInstance().getExtServer(sender).getPubKey());
+    } else {
+        sendErrorFrame(r, sender, 666);
+    }
 }
 
 void dbServer::okReceived(Request& r, int sender){
@@ -349,13 +454,133 @@ void dbServer::activeServersDB(Request& r, int sender){
 }
 
 void dbServer::getAvailableResults(Request& r, int sender){
-
+    QString exName = r.msg[3];
+    QVector<QStringList> result;
+    QString error;
+    if (dbh->openDB()){
+        if (exName == "*"){
+            if (dbh->execQuery("SELECT e.id, e.name, p.country, p.sex, p.race, DATE_PART('year', current_date) - DATE_PART('year', p.birth_date) as age FROM examination e JOIN patient p on e.patient_id = p.id;",
+                          result, error)){
+                QStringList frameResult;
+                frameResult << r.msg[2] << QString(result.size());
+                for (int i =0; i < result.size(); i++){
+                    frameResult << result.at(i);
+                }
+                extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_AVAILABLE_RESULTS, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+            } else {
+                sendErrorFrame(r, sender, 666);
+            }
+        } else {
+            QStringList whereList;
+            if (r.msg[3] != "*")
+                whereList << "p.country = '"+r.msg[3]+"'";
+            if (r.msg[4] != "*")
+                whereList << "p.sex = '"+r.msg[4]+"'";
+            if (r.msg[5] != "*")
+                whereList << "p.race = '"+r.msg[5]+"'";
+            if (r.msg[6] != "*")
+                whereList << "DATE_PART('year', current_date) - DATE_PART('year', p.birth_date) > "+r.msg[6];
+            if (r.msg[7] != "*")
+                whereList << "DATE_PART('year', current_date) - DATE_PART('year', p.birth_date) < "+r.msg[7];
+            QString where;
+            if(whereList.size() > 0)
+                where = " WHERE " + whereList.join(" AND ");
+            if (dbh->execQuery("SELECT e.id, e.name, p.country, p.sex, p.race, DATE_PART('year', current_date) - DATE_PART('year', birth_date) as age FROM examination e JOIN patient p on e.patient_id = p.id"+where+";",
+                            result, error)){
+                QStringList frameResult;
+                frameResult << r.msg[2] << QString(result.size());
+                for (int i =0; i < result.size(); i++){
+                    frameResult << result.at(i);
+                }
+                extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_AVAILABLE_RESULTS, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+            } else {
+                sendErrorFrame(r, sender, 666);
+            }
+        }
+        dbh->closeDB();
+    } else {
+        sendErrorFrame(r, sender, 666);
+    }
 }
 
 void dbServer::getResult(Request& r, int sender){
-
+    QString exId = r.msg[3];
+    if(dbh->openDB()){
+        QVector<QStringList> result;
+        QString error;
+        if (dbh->execQuery("SELECT result_path FROM examination WHERE id = "+exId+";", result, error)){
+            QFile file(result.at(0).at(0));
+            QString size = QString::number(file.size());
+            int lastSlash = result.at(0).at(0).lastIndexOf("/");
+            QStringList frameResult;
+            frameResult << r.msg[2] <<result.at(0).at(0).left(lastSlash) << size << file.readAll().toBase64();
+            extPortListener->sendFrame(r.socket, makeFrame(FrameType::RESULT, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+        }
+        dbh->closeDB();
+    } else {
+        sendErrorFrame(r, sender, 666);
+    }
 }
 
 void dbServer::getStatistics(Request& r, int sender){
+    QStringList whereList;
+    if (r.msg[3] != "*")
+        whereList << "e.name = '"+r.msg[3]+"'";
+    if (r.msg[4] != "*")
+        whereList << "e.date > "+r.msg[4];
+    if (r.msg[5] != "*")
+        whereList << "e.date < "+r.msg[5];
+    if (r.msg[6] != "*")
+        whereList << "p.country = '"+r.msg[6]+"'";
+    if (r.msg[7] != "*")
+        whereList << "p.sex = '"+r.msg[7]+"'";
+    if (r.msg[8] != "*")
+        whereList << "p.race = '"+r.msg[8]+"'";
+    if (r.msg[9] != "*")
+        whereList << "DATE_PART('year', current_date) - DATE_PART('year', p.birth_date) > "+r.msg[9];
+    if (r.msg[10] != "*")
+        whereList << "DATE_PART('year', current_date) - DATE_PART('year', p.birth_date) < "+r.msg[10];
+    QString where;
+    if(whereList.size() > 0)
+        where = " WHERE " + whereList.join(" AND ");
+    QStringList groups;
+    if (r.msg.size()>11){
+        for (int i=11; i<r.msg.size();i++)
+           groups << r.msg[i];
+    }
+    QString groupBy("");
+    QString selectGroups("");
+    if (dbh->openDB()){
+        QVector<QStringList> result;
+        QString error;
+        if(groups.size() > 0){
+            groupBy = " GROUP BY "+groups.join(',');
+            selectGroups = groups.join(',')+",";
+        }
+        if (dbh->execQuery("SELECT "+selectGroups+" COUNT(*) FROM examination e JOIN patient p on e.patient_id = p.id"+where+groupBy+";",
+                           result, error)){
+            QStringList frameResult;
+            frameResult << r.msg[2];
+            frameResult << QString(result.size());
+            for (int i =0; i < result.size(); i++){
+                frameResult << result.at(i);
+            }
+            extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_STATISTICS, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+        }
+        dbh->closeDB();
+    } else {
+        sendErrorFrame(r, sender, 666);
+    }
+}
 
+
+void dbServer::sendErrorFrame(Request& r, int sender, int errorCode){
+    if (sender == 0){
+        clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::ERROR, QStringList() << QString(errorCode) << r.msg[1]));
+    } else {
+        if (Configuration::getInstance().getDBServers().contains(sender))
+            dbPortListener->sendFrame(r.socket, makeFrame(FrameType::ERROR, QStringList() << QString(errorCode) << r.msg[2]), Configuration::getInstance().getDBServer(sender).getPubKey());
+        else
+            extPortListener->sendFrame(r.socket, makeFrame(FrameType::ERROR, QStringList() << QString(errorCode) << r.msg[2]), Configuration::getInstance().getExtServer(sender).getPubKey());
+    }
 }

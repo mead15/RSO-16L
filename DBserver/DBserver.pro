@@ -1,5 +1,6 @@
 QT += core network
 QT -= gui
+QT += sql
 
 CONFIG += c++11
 
@@ -13,6 +14,7 @@ SOURCES += main.cpp \
     configuration.cpp \
     sserver.cpp \
     dbserver.cpp \
+    ../DBHandler/dbhandler.cpp \
     ../communication/cipheradapter.cpp \
     ../communication/rsaencrypter.cpp \
     ../communication/tcpserver.cpp \
@@ -28,6 +30,7 @@ HEADERS += \
     sserver.h \
     srvtype.h \
     dbserver.h \
+    ../DBHandler/dbhandler.h \
     ../communication/cipheradapter.h \
     ../communication/rsaencrypter.h \
     ../communication/tcpserver.h
