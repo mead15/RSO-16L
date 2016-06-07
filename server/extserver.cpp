@@ -7,8 +7,8 @@ extServer::extServer(int extPort, int dbPort, int clientPort){
     lastAskingTime = QTime::currentTime().addSecs( - Configuration::getInstance().interval() - 1);
     lastBeingAskedTime = QTime::currentTime();
     std::cout<<"myNum:"<<Configuration::getInstance().myNum()<<", ports: "<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
-    extPortListener = new CipherAdapter(extPort);
-    dbPortListener = new CipherAdapter(dbPort);
+    extPortListener = new TcpServer(extPort);
+    dbPortListener = new TcpServer(dbPort);
     clientPortListener = new TcpServer(clientPort);
 
     QObject::connect(extPortListener, SIGNAL(log(QString)), this, SLOT(log(QString)));
@@ -156,7 +156,7 @@ void extServer::frameDBReceivedError(QString ip, QString error){
             log("Propagate DBServers state");
             QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
             for (auto i = servers.begin(); i!=servers.end(); i++){
-                extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state), i.value().getPubKey());
+                extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state));
             }
             return;
         }
@@ -178,6 +178,7 @@ void extServer::masterAction(){
     else{
         if(lastBeingAskedTime.secsTo(QTime::currentTime())> 2 * Configuration::getInstance().interval()){
             log("ExtServers:: NO master!");
+            std::cout<<"ExtServers:: NO master!"<<std::endl;
             startElection();
         }
     }
@@ -193,15 +194,17 @@ void extServer::masterAction(){
 }
 
 void extServer::startElection(){
+    std::cout<<"ExtServers:: Start Election"<<std::endl;
     log("ExtServers:: START ELECTION!");
     QVector<int> active = Configuration::getInstance().getActiveExtServers();
-    if(active.size() == 1){
-        Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
-        //send frame coordinator (not necessary)
-        return;
-    }
+    //if(active.size() == 1){
+    //    Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
+    //    this->sendNewMasterToAll();
+    //    return;
+    //}
     QVector<SServer> serversUnder = Configuration::getInstance().getExtServersUnderMe();
     if(serversUnder.isEmpty()){
+        std::cout<<"ExtServers:: server under is empty"<<std::endl;
         Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
         this->sendNewMasterToAll();
         elecErrorCnt = 0;
@@ -209,7 +212,8 @@ void extServer::startElection(){
         isMasterCandidate = true;
         for (auto it = serversUnder.begin(); it!=serversUnder.end(); it++){
             SServer srv = *it;
-            extPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::ELECTION), srv.getPubKey());
+            std::cout<<"ExtServers:: send election to !"<< srv.getNum() <<std::endl;
+            extPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::ELECTION));
         }
     }
 
@@ -219,7 +223,8 @@ void extServer::askForState(){
     log("ExtServers:: Check if alive");
     QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::STATUS), i.value().getPubKey());
+        std::cout<<"ask "<< i.value().getNum()<<std::endl;
+        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::STATUS));
     }
     lastAskingTime = QTime::currentTime();
 }
@@ -249,15 +254,16 @@ void extServer::sendExtStateToAll(){
     QStringList state = getExtState();
     QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_EXT, state), i.value().getPubKey());
+        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_EXT, state));
     }
 }
 
 void extServer::sendNewMasterToAll(){
+    std::cout<<"send master to all"<<std::endl;
     log("ExtServers:: NEW Master! -> " + QString::number(Configuration::getInstance().myNum()));
     QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::COORDINATOR), i.value().getPubKey());
+        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::COORDINATOR));
     }
 }
 
@@ -279,7 +285,7 @@ QStringList extServer::makeClientFrame(QString frameType){
 
 void extServer::status(Request& r, int sender){
     lastBeingAskedTime = QTime::currentTime();
-    extPortListener->sendFrame(r.socket, makeFrame(FrameType::SERVER_STATUS_OK), Configuration::getInstance().getExtServer(sender).getPubKey());
+    extPortListener->sendFrame(r.socket, makeFrame(FrameType::SERVER_STATUS_OK));
     if(Configuration::getInstance().isMaster()){
         Configuration::getInstance().setMaster(sender);
     }
@@ -297,7 +303,7 @@ void extServer::statusOK(Request& r, int sender){
 
 void extServer::election(Request& r, int sender){
     isMasterCandidate = true;//jest w startElection
-    extPortListener->sendFrame(r.socket, makeFrame(FrameType::ELECTION_STOP), Configuration::getInstance().getExtServer(sender).getPubKey());
+    extPortListener->sendFrame(r.socket, makeFrame(FrameType::ELECTION_STOP));
     startElection();
 }
 
@@ -320,7 +326,7 @@ void extServer::getActiveServersExt(Request& r, int sender){
         if(i.value().isActive())
             result<<QString::number(i.key());
     }
-    dbPortListener->sendFrame(r.socket, makeFrame(FrameType::ACTIVE_SERVERS_EXT, result), Configuration::getInstance().getDBServer(sender).getPubKey());
+    dbPortListener->sendFrame(r.socket, makeFrame(FrameType::ACTIVE_SERVERS_EXT, result));
 }
 
 void extServer::activeServersExt(Request& r, int sender){
@@ -343,7 +349,7 @@ void extServer::activeServersDB(Request& r, int sender){
         }
         QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
         for (auto i = servers.begin(); i!=servers.end(); i++){
-            dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_DB, result), i.value().getPubKey());
+            dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_DB, result));
         }
     } else {
         log("Received active DBServers from: (myMaster)" + QString::number(sender));
@@ -387,7 +393,7 @@ void extServer::getAvailableResults(Request& r, int sender){
             result << r.msg.at(i);
         }
         SServer srv = Configuration::getInstance().getDBServer(active.at(dbServer_nb));
-        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_AVAILABLE_RESULTS, result), srv.getPubKey());
+        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_AVAILABLE_RESULTS, result));
         //clientPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_AVAILABLE_RESULTS, result));
     } else{
         clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::ERROR, QStringList() << "DB_LOST_CONNECTION"));
@@ -411,7 +417,7 @@ void extServer::getResult(Request& r, int sender){
             result << r.msg.at(i);
         }
         SServer srv = Configuration::getInstance().getDBServer(active.at(dbServer_nb));
-        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_RESULT, result), srv.getPubKey());
+        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_RESULT, result));
         //clientPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_RESULT, result));
     } else{
         clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::ERROR, QStringList() << "DB_LOST_CONNECTION"));
@@ -435,7 +441,7 @@ void extServer::getStatistics(Request& r, int sender){
             result << r.msg.at(i);
         }
         SServer srv = Configuration::getInstance().getDBServer(active.at(dbServer_nb));
-        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_STATISTICS, result), srv.getPubKey());
+        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_STATISTICS, result));
         //clientPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_STATISTICS, result));
     } else{
         clientPortListener->sendFrame(r.socket, makeClientFrame(FrameType::ERROR, QStringList() << "DB_LOST_CONNECTION"));

@@ -68,8 +68,8 @@ private:
     QQueue<Request> dbQueue;
     QQueue<Request> clientQueue;
 
-    CipherAdapter* extPortListener;
-    CipherAdapter* dbPortListener;
+    TcpServer* extPortListener;
+    TcpServer* dbPortListener;
     TcpServer* clientPortListener;
 
     typedef void (extServer::*RsponseFunc)(Request&, int);

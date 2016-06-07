@@ -11,23 +11,15 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
     //QString configPath = "settings.ini";
     QString configPath = QCoreApplication::applicationDirPath() + "/settings.ini";
-    QString privKeyPath = "privKey.pem";
-    QStringList args = a.arguments();
-    if(args.count() == 0)
-    {
-        std::cout << "Argument required!!!" << std::endl;
-        exit(0);
-    }
-    int num = args.at(1).toInt();
-    //if(argc>3){
-        //int num = atoi(argv[1]);
+
+    if(argc>1){
+        int num = atoi(argv[1]);
         //int master = atoi(argv[2]);
         //int num = 3;
-        int master = 1;
+        //int master = 1;
         // Load Configuration
         Configuration::getInstance().loadConfig(configPath);
         Configuration::getInstance().setMyNum(num);
-        Configuration::getInstance().setMaster(master);
         Configuration::getInstance().setServerActive(num, true);
 
         // Set ny private key
@@ -53,10 +45,10 @@ int main(int argc, char *argv[])
         extServer server(me.getPortExt(), me.getPortDB(), me.getPortClient());
         server.start();
 
-    //}
-    //else{
-        //std::cout<<"Invalid arguments"<<std::endl;
-   // }
+   }
+   else{
+        std::cout<<"Invalid arguments"<<std::endl;
+   }
 
     return a.exec();
 }
