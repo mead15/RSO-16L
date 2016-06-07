@@ -19,6 +19,7 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QProcess>
+#include <QDomDocument>
 
 class dbServer : public QObject
 {

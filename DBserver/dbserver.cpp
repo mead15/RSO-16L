@@ -529,10 +529,26 @@ void dbServer::getResult(Request& r, int sender){
         QString error;
         if (dbh->execQuery("SELECT result_path FROM examination WHERE id = "+exId+";", result, error)){
             QFile file(result.at(0).at(0));
+            QRegExp rx("*.xml");
+            bool isXml = rx.exactMatch(result.at(0).at(0));
             QString size = QString::number(file.size());
             int lastSlash = result.at(0).at(0).lastIndexOf("/");
             QStringList frameResult;
-            frameResult << r.msg[2] <<result.at(0).at(0).left(lastSlash) << size << file.readAll().toBase64();
+            QByteArray fileContent = file.readAll();
+            if (isXml){
+                QDomDocument xml;
+                xml.setContent(fileContent);
+                QDomNodeList nodes = xml.elementsByTagName("last_name");
+                for (int i = 0; i < nodes.count(); ++i)
+                {
+                    QDomNode node = nodes.at(i);
+                    QDomElement child = node.firstChildElement("child");
+                    if (!child.isNull())
+                        node.removeChild(child);
+                }
+                fileContent = xml.toByteArray();
+            }
+            frameResult << r.msg[2] <<result.at(0).at(0).left(lastSlash) << size << fileContent.toBase64();
             extPortListener->sendFrame(r.socket, makeFrame(FrameType::RESULT, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
         }
         dbh->closeDB();
