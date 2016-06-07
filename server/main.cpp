@@ -12,14 +12,13 @@ int main(int argc, char *argv[])
     //QString configPath = "settings.ini";
     QString configPath = QCoreApplication::applicationDirPath() + "/settings.ini";
 
+
     if(argc>1){
         int num = atoi(argv[1]);
-        //int master = atoi(argv[2]);
-        //int num = 3;
-        //int master = 1;
-        // Load Configuration
+
         Configuration::getInstance().loadConfig(configPath);
         Configuration::getInstance().setMyNum(num);
+
         Configuration::getInstance().setServerActive(num, true);
 
         // Set ny private key
