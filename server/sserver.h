@@ -4,46 +4,39 @@
 #include <string>
 #include <sstream>
 #include <QDebug>
+#include <QString>
+#include <srvtype.h>
 
 class SServer
 {
 public:
-    SServer();
-    SServer(std::string name, std::string ip, int port, int portDB, int portClient);
+    SServer(){}
+    SServer(int num, QString ip, int portExt, int portDB, int portClient, QString pubKey, SrvType type);
 
-    std::string getIp() { return ip; }
-    void setIp(std::string ip) { this->ip = ip; }
-    int getPort() {return port; }
-    void setPortDB(int port) { this->portDB = port; }
-    int getPortDB() {return portDB; }
-    void setPortClient(int port) { this->portClient = port; }
-    int getPortClient() {return portClient; }
-    void setPort(int port) { this->port = port; }
-    std::string getName() { return name; }
-    void setName(std::string name) { this->name = name; }
-
-    int getServerNumber() {
-        if (name != "") {
-            return std::stoi(name.substr(name.size() - 1));
-            /*int nr;
-            std::stringstream ss(name);
-            ss >> nr;
-            return nr*/;
-        }
-        return 0;
-    }
+    int getNum() {return num_;}
+    QString getIp() { return ip_; }
+    int getPortExt() {return portExt_; }
+    int getPortDB() {return portDB_; }
+    int getPortClient() {return portClient_; }
+    QString getPubKey() {return pubKey_;}
+    void setActive(bool active) {active_=active;}
+    bool isActive(){return active_;}
+    SrvType type(){return type_;}
 
     bool operator==(const SServer& other);
 
-
 private:
-    std::string ip;
-    int port;
-    int portDB;
-    int portClient;
-    std::string name;
+    int num_;
+    QString ip_;
+    int portExt_;
+    int portDB_;
+    int portClient_;
+    QString pubKey_;
+    bool active_;
+    SrvType type_;
+
 };
 
-QDebug operator<<(QDebug qdb, SServer srv);
+//QDebug operator<<(QDebug qdb, SServer srv);
 
 #endif // SSERVER_H

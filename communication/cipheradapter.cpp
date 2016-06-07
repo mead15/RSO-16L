@@ -3,7 +3,7 @@
 CipherAdapter::CipherAdapter(int port) : server(port)
 {
     connect(&server, SIGNAL(log(QString)), this, SLOT(catchLog(QString)));
-    connect(&server, SIGNAL(error(QString)), this, SLOT(catchError(QString)));
+    connect(&server, SIGNAL(error(QString, QString)), this, SLOT(catchError(QString, QString)));
     connect(&server, SIGNAL(frameContent(QTcpSocket*,QStringList)), this, SLOT(catchFrameContent(QTcpSocket*,QStringList)));
 }
 
@@ -62,7 +62,7 @@ void CipherAdapter::catchLog(QString content)
     emit log(content);
 }
 
-void CipherAdapter::catchError(QString content)
+void CipherAdapter::catchError(QString recipient, QString content)
 {
-    emit error(content);
+    emit error(recipient, content);
 }

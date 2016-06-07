@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
         //int num = atoi(argv[1]);
         //int master = atoi(argv[2]);
         int num = 4;
-        int master = 4;
+        int master = 1;
         // load config
         Configuration::getInstance().loadConfig(configPath);
         Configuration::getInstance().setMyNum(num);
