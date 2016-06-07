@@ -101,14 +101,16 @@ private:
     void attach(LamportRequest & r, int sender);
     void deletion(LamportRequest & r, int sender);
     void unlink(LamportRequest & r, int sender);
-    void okReceived(Request& r, int sender);
+    void okReceived(LamportRequest& r, int sender);
+    void errorReceived(LamportRequest& r, int sender);
     void getActiveServersDB(Request& r, int sender);
     void activeServersDB(Request& r, int sender);
     void getAvailableResults(Request& r, int sender);
     void getResult(Request& r, int sender);
     void getStatistics(Request& r, int sender);
-
+    void checkAllReceived(QString frameType, int stamp);
     void sendErrorFrame(Request &r, int sender, int code);
+    void sendErrorFrame(LamportRequest &r, int sender, int code);
 };
 
 #endif // SERVSERVERLISTEN_H
