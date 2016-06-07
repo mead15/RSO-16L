@@ -52,47 +52,51 @@ int main(int argc, char *argv[])
 
     //sprawdzenie parametrów wywołania
     QStringList args = QCoreApplication::arguments();
-    if(args.at(1) == "list")
+
+    if(args.size() > 1)
     {
-        if(client.send(QStringList() << "GET_AVAILABLE_RESULTS" << "*") == NO_SERVERS)
+        if(args.at(1) == "list")
         {
-            std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            if(client.send(QStringList() << "GET_AVAILABLE_RESULTS" << "*") == NO_SERVERS)
+            {
+                std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
+                exit(10);
+            }
         }
-    }
-    else if(args.at(1) == "get")
-    {
-        if(client.send(QStringList() << "GET_RESULT" << args.at(2)) == NO_SERVERS)
+        else if(args.at(1) == "get")
         {
-            std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            if(client.send(QStringList() << "GET_RESULT" << args.at(2)) == NO_SERVERS)
+            {
+                std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
+                exit(10);
+            }
         }
-    }
-    else if(args.at(1) == "find")
-    {
-        //<nazwa badania>,<kraj>,<płeć>,<rasa>,<minimalny wiek>,<maksymalny wiek>
-        if(client.send(QStringList() << "GET_AVAILABLE_RESULTS" << args.at(2) << args.at(3) << \
-                       args.at(4) << args.at(5) << args.at(6) << args.at(7)) == NO_SERVERS)
+        else if(args.at(1) == "find")
         {
-            std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            //<nazwa badania>,<kraj>,<płeć>,<rasa>,<minimalny wiek>,<maksymalny wiek>
+            if(client.send(QStringList() << "GET_AVAILABLE_RESULTS" << args.at(2) << args.at(3) << \
+                           args.at(4) << args.at(5) << args.at(6) << args.at(7)) == NO_SERVERS)
+            {
+                std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
+                exit(10);
+            }
         }
-    }
-    else if(args.at(1) == "stats")
-    {
-        //<nazwa badania>,<data od>,<data do>,<kraj>,<płeć>,<rasa>,<minimalny wiek>,<maksymalny wiek>,
-        //{<pole grupowania 1>,<pole grupowania 2>,<...>}
-        QStringList a = args.at(10).split("");
-        a.pop_back();
-        a.pop_front();
-        QString grupowanie = "{"+a.join(",")+"}";
-        std::cout << grupowanie.toStdString() << std::endl;
-        if(client.send(QStringList() << "GET_AVAILABLE_RESULTS" << args.at(2) << args.at(3) << \
-                       args.at(4) << args.at(5) << args.at(6) << args.at(7) << args.at(8) << args.at(9)\
-                       << grupowanie) == NO_SERVERS)
+        else if(args.at(1) == "stats")
         {
-            std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            //<nazwa badania>,<data od>,<data do>,<kraj>,<płeć>,<rasa>,<minimalny wiek>,<maksymalny wiek>,
+            //{<pole grupowania 1>,<pole grupowania 2>,<...>}
+            QStringList a = args.at(10).split("");
+            a.pop_back();
+            a.pop_front();
+            QString grupowanie = "{"+a.join(",")+"}";
+            std::cout << grupowanie.toStdString() << std::endl;
+            if(client.send(QStringList() << "GET_AVAILABLE_RESULTS" << args.at(2) << args.at(3) << \
+                           args.at(4) << args.at(5) << args.at(6) << args.at(7) << args.at(8) << args.at(9)\
+                           << grupowanie) == NO_SERVERS)
+            {
+                std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
+                exit(10);
+            }
         }
     }
 

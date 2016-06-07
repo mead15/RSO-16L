@@ -49,6 +49,7 @@ void Client::receive()
 
 void Client::handle(QStringList what)
 {
+    std::cout << "<" << what.join("").toStdString() << ">" << std::endl;
     if(what.at(0) == "ACTIVE_SERVERS")
     {
         int num = what.at(1).toInt();
@@ -57,7 +58,10 @@ void Client::handle(QStringList what)
         for(int i=0; i< num; ++i)
         {
             Server s;
-            s.ip = QHostAddress(what.at(i*2+2));
+            if(what.at(i*2+2) == "localhost")
+                s.ip = QHostAddress("127.0.0.1");
+            else s.ip = QHostAddress(what.at(i*2+2));
+
             s.port = what.at(i*2+3).toInt();
             servers_->push_back(s);
             settings->setValue("server"+QString::number(i+1)+"/ip", s.ip.toString());
