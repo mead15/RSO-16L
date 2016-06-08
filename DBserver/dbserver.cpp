@@ -2,9 +2,11 @@
 
 dbServer::dbServer(int extPort, int dbPort, int clientPort){
     this->log("init server, exxtPort: " + QString::number(extPort) + " dbPort: " + QString::number(dbPort) + " clientPort: " + QString::number(clientPort));
+    isMasterCandidate = false;
+    elecErrorCnt = 0;
     lastAskingTime = QTime::currentTime().addSecs( - Configuration::getInstance().interval() - 1);
     lastBeingAskedTime = QTime::currentTime();
-    std::cout<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
+    //std::cout<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
     extPortListener = new TcpServer(extPort);
     dbPortListener = new TcpServer(dbPort);
     clientPortListener = new TcpServer(clientPort);
@@ -29,6 +31,9 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     dbFunctionMapLR[FrameType::UNLINK] = &dbServer::unlink;
     dbFunctionMapLR[FrameType::OK] = &dbServer::okReceived;
     dbFunctionMapLR[FrameType::ERROR] = &dbServer::errorReceived;
+    dbFunctionMap[FrameType::ELECTION] = &dbServer::election;
+    dbFunctionMap[FrameType::ELECTION_STOP] = &dbServer::electionStop;
+    dbFunctionMap[FrameType::COORDINATOR] = &dbServer::coordinator;
     
     extFunctionMap[FrameType::GET_ACTIVE_SERVERS_DB] = &dbServer::getActiveServersDB;
 
@@ -92,25 +97,27 @@ void dbServer::frameDBRecived(QTcpSocket*socket, QStringList msg){
     msg.at(1).toInt(&ok);
     if (ok){
         int timeStamp = msg[1].toInt();
+        log("synchronize clock");
         synchronizeClock(timeStamp);
         LamportRequest r;
         msg.removeAt(1);
         r.msg = msg;
         r.socket = socket;
         r.time = timeStamp;
+        log("request order");
         requestOrder(r);
     }
     else{
         Request r;
         r.msg = msg;
         r.socket = socket;
+        log("to db queue");
         this->dbQueue.append(r);
     }
 }
 
 void dbServer::frameClientRecived(QTcpSocket*socket, QStringList msg){
     log("client Frame: " + msg.join(","));
-    std::cout<<"recived from client"<<std::endl;
     Request r;
     r.msg = msg;
     r.socket = socket;
@@ -118,28 +125,33 @@ void dbServer::frameClientRecived(QTcpSocket*socket, QStringList msg){
 }
 
 void dbServer::frameExtAnalyze(Request &r){
+    log('analyze ext frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
     (this->*(extFunctionMap[type]))(r, sender);
 }
 
 void dbServer::frameDBAnalyze(Request & r){
+    log('analyze db frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
     (this->*(dbFunctionMap[type]))(r, sender);
 }
 
 void dbServer::frameDBAnalyze(LamportRequest & r){
+    log('analyze db frame lamport request ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type;
     if (r.msg[2] == "OK")
         type = "OK";
     else
         type = r.msg[1];
+    log(type);
     (this->*(dbFunctionMapLR[type]))(r, sender);
 }
 
 void dbServer::frameClientAnalyze(Request & r){
+    log('analyze client frame ' + r.msg.join(","));
     LamportRequest rL;
     rL.msg = QStringList() << "0" << r.msg;
     rL.socket = r.socket;
@@ -147,18 +159,21 @@ void dbServer::frameClientAnalyze(Request & r){
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     clientSocketMap[rL.time] = rL.socket;
     responseNumMap[rL.time] = servers.size() + 1; //ilość koniecznych potwiedzeń zapisu (wszystkie serwery + ja)
+    log("request order");
     requestOrder(rL);
     for (auto i = servers.begin(); i!=servers.end(); i++){
+        log("propagate to: " + QString::number(i.value().getNum()));
         dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(r.msg, rL.time));
     }
 }
 
 void dbServer::frameExtRecivedError(QString error, QString ip){
+    log("error form ext server " + ip +" " + error);
 
 }
 
 void dbServer::frameDBRecivedError(QString error, QString ip){
-    log("error: " + error);
+    log("db error: " + error + " " + ip);
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
         if(i.value().getIp()==ip && i.value().isActive()){
@@ -174,9 +189,12 @@ void dbServer::frameClientRecivedError(QString error, QString ip){
 }
 
 void dbServer::synchronizeClock(int timeStamp){
+    log("old local time: " + QString::number(lockalTime));
+    log("timestamp: " + QString::number(timeStamp));
     if (lockalTime <= timeStamp){
         lockalTime = timeStamp + 1;
     }
+    log("new local time: " + QString::number(lockalTime));
 }
 
 void dbServer::requestOrder(LamportRequest r){
@@ -208,36 +226,76 @@ void dbServer::log(QString text)
 }
 
 void dbServer::masterAction(){
+    log("master action");
+    //std::cout<<isMasterCandidate<<std::endl;
     if(Configuration::getInstance().isMaster()){
+        log("i am master");
         if(lastAskingTime.secsTo(QTime::currentTime()) >= Configuration::getInstance().interval() )
             askForState();
     }
     else{
-        if(lastBeingAskedTime.secsTo(QTime::currentTime())> 2 * Configuration::getInstance().interval())
-            log("no master!");
+        log("i am not master");
+        if(lastBeingAskedTime.secsTo(QTime::currentTime())> 2 * Configuration::getInstance().interval()){
+            log("DBServers:: NO master!");
             startElection();
+        }
+    }
+    if(isMasterCandidate){
+        log("master candidate");
+        QVector<SServer> serversUnder = Configuration::getInstance().getDBServersUnderMe();
+        if(serversUnder.size() == elecErrorCnt){
+            log("no active servers under me");
+            isMasterCandidate = false;
+            Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
+            this->sendNewMasterToAll();
+            elecErrorCnt = 0;
+        }
     }
 }
 
 void dbServer::startElection(){
+    log("ExtServers:: START ELECTION!");
+    QVector<int> active = Configuration::getInstance().getActiveDBServers();
+    //if(active.size() == 1){
+    //    Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
+    //    this->sendNewMasterToAll();
+    //    return;
+    //}
+    QVector<SServer> serversUnder = Configuration::getInstance().getDBServersUnderMe();
+    if(serversUnder.isEmpty()){
+        log("ExtServers:: server under is empty");
+        Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
+        this->sendNewMasterToAll();
+        elecErrorCnt = 0;
+    } else {
+        isMasterCandidate = true;
+        for (auto it = serversUnder.begin(); it!=serversUnder.end(); it++){
+            SServer srv = *it;
+            log("ExtServers:: send election to !" + QString::number(srv.getNum()));
+            dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortDB(), makeFrame(FrameType::ELECTION));
+        }
+    }
 
 }
 
 void dbServer::askForState(){
-    log("ask for state");
+    log("DbServers:: Check if alive");
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
+        log("ask " + QString::number( i.value().getNum()));
         dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::STATUS));
     }
 }
+
 
 QStringList dbServer::getDBState(){
     log("read DB servers state");
     QVector<int> active = Configuration::getInstance().getActiveDBServers();
     QStringList result;
     for (auto i = active.begin(); i!=active.end(); i++){
-           result << QString::number(*i);
+        log("send to " + QString::number(*i));
     }
+    log(result.join(","));
     return result;
 }
 
@@ -246,8 +304,23 @@ void dbServer::sendDBStateToAll(){
     QStringList state = getDBState();
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
+        log("send to " + i.value().getIp());
         dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state));
     }
+}
+
+void dbServer::sendNewMasterToAll(){
+    log("ExtServers:: NEW Master! -> " + QString::number(Configuration::getInstance().myNum()));
+    QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+    for (auto i = servers.begin(); i!=servers.end(); i++){
+        log("send to " + i.value().getIp());
+        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::COORDINATOR));
+    }
+}
+
+void dbServer::electionStop(Request& r, int sender){
+    log("ExtServers:: Election Stop!");
+    isMasterCandidate = false;
 }
 
 QStringList dbServer::makeFrame(QStringList data, int timeStamp){
@@ -271,8 +344,10 @@ QStringList dbServer::makeClientFrame(QString frameType){
 }
 
 void dbServer::status(Request& r, int sender){
+    log("send statos ok to " + QString::number(sender));
     dbPortListener->sendFrame(r.socket, makeFrame(FrameType::SERVER_STATUS_OK));
     if(Configuration::getInstance().isMaster()){
+        log("new master " + QString::number(sender));
         Configuration::getInstance().setMaster(sender);
     }
 }
@@ -281,21 +356,30 @@ void dbServer::statusOK(Request& r, int sender){
     log(QString::number(sender) + " is OK");
     if(Configuration::getInstance().isMaster()){
         if(!Configuration::getInstance().getDBServer(sender).isActive()){
+            log("new server is active");
             Configuration::getInstance().setServerActive(sender, true);
             sendDBStateToAll();
         }
     }
 }
 
-void dbServer::election(Request& r, int sender){
-
-}
 
 void dbServer::coordinator(Request& r, int sender){
+    log("DBServers:: NEW Master! -> " + QString::number(sender));
+    isMasterCandidate = false;
+    Configuration::getInstance().setMaster(sender);
+}
 
+void dbServer::election(Request& r, int sender){
+    log("get election");
+    isMasterCandidate = true;//jest w startElection
+    log("send election stop");
+    dbPortListener->sendFrame(r.socket, makeFrame(FrameType::ELECTION_STOP));
+    startElection();
 }
 
 void dbServer::upload(LamportRequest & r, int sender){
+    log("upload from: " + QString::number(sender));
     bool clients = (sender == 0);
     QString tmp = r.msg[2];
     QByteArray archive = QByteArray::fromBase64(tmp.toUtf8());
@@ -332,6 +416,7 @@ void dbServer::upload(LamportRequest & r, int sender){
 }
 
 void dbServer::insert(LamportRequest & r, int sender){
+    log("insert from " + QString::number(sender));
     bool clients = (sender == 0);
     QString table = r.msg[2];
     QString error;
@@ -368,6 +453,7 @@ void dbServer::insert(LamportRequest & r, int sender){
 }
 
 void dbServer::attach(LamportRequest & r, int sender){
+    log("attach from " + QString::number(sender));
     bool clients = (sender == 0);
     QString fname = r.msg[2];
     QRegExp rx("*.bmp|*.xml");
@@ -387,6 +473,7 @@ void dbServer::attach(LamportRequest & r, int sender){
 }
 
 void dbServer::deletion(LamportRequest & r, int sender){
+    log("delete from " + QString::number(sender));
     bool clients = (sender==0);
     QString table = r.msg[2];
     QString id = clients ? r.msg[3] : r.msg[4];
@@ -404,6 +491,7 @@ void dbServer::deletion(LamportRequest & r, int sender){
 }
 
 void dbServer::unlink(LamportRequest & r, int sender){
+    log("unlink from " + QString::number(sender));
     bool clients = (sender == 0);
     QString fileName = r.msg[2];
     QFile file(fileName);
@@ -419,6 +507,7 @@ void dbServer::unlink(LamportRequest & r, int sender){
 }
 
 void dbServer::okReceived(LamportRequest& r, int sender){
+    log("ok recived " + QString::number(sender));
    int stamp = r.msg[3].toInt();
    if (responseNumMap.contains(stamp)){
         log("received OK (db operation completed) from: " + QString::number(sender) + "time stamp: " +  QString::number(stamp));
@@ -427,6 +516,7 @@ void dbServer::okReceived(LamportRequest& r, int sender){
 }
 
 void dbServer::errorReceived(LamportRequest& r, int sender){
+    log("recived error " + QString::number(sender));
     int stamp = r.msg[3].toInt();
     responseNumMap.remove(stamp);
     clientSocketMap.remove(stamp);
@@ -437,6 +527,7 @@ void dbServer::errorReceived(LamportRequest& r, int sender){
 }
 
 void dbServer::checkAllReceived(QString frameType, int stamp){
+    log("check all recived " + QString::number(stamp));
     int toReceive = responseNumMap[stamp];
     toReceive -= 1;
     if (toReceive == 0){
@@ -474,6 +565,7 @@ void dbServer::activeServersDB(Request& r, int sender){
 }
 
 void dbServer::getAvailableResults(Request& r, int sender){
+    log("available results to " + QString::number(sender));
     QString exName = r.msg[3];
     QVector<QStringList> result;
     QString error;
@@ -524,6 +616,7 @@ void dbServer::getAvailableResults(Request& r, int sender){
 }
 
 void dbServer::getResult(Request& r, int sender){
+    log("get result to " + QString::number(sender));
     QString exId = r.msg[3];
     if(dbh->openDB()){
         QVector<QStringList> result;
@@ -559,6 +652,7 @@ void dbServer::getResult(Request& r, int sender){
 }
 
 void dbServer::getStatistics(Request& r, int sender){
+    log("get statisctics " + QString::number(sender));
     QStringList whereList;
     if (r.msg[3] != "*")
         whereList << "e.name = '"+r.msg[3]+"'";
@@ -611,10 +705,12 @@ void dbServer::getStatistics(Request& r, int sender){
 
 
 void dbServer::sendErrorFrame(Request& r, int sender, int errorCode){
-        extPortListener->sendFrame(r.socket, makeFrame(FrameType::ERROR, QStringList() << r.msg[2] << QString(errorCode) ));
+    log("send error " + QString::number(errorCode) + ' to ' + QString::number(sender));
+    extPortListener->sendFrame(r.socket, makeFrame(FrameType::ERROR, QStringList() << r.msg[2] << QString(errorCode) ));
 }
 
 void dbServer::sendErrorFrame(LamportRequest& r, int sender, int errorCode){
+     log("send error from lamport " + QString::number(errorCode) + ' to ' + QString::number(sender));
     if (sender == 0){
         log("send client frame: " + FrameType::ERROR);
         clientPortListener->sendFrame(clientSocketMap[r.time],makeClientFrame(FrameType::ERROR, QStringList() << QString(errorCode)));

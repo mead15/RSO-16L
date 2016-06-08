@@ -10,6 +10,7 @@ QString FrameType::STATUS = "STATUS";
 QString FrameType::ACTIVE_SERVERS_DB = "ACTIVE_SERVERS_DB";
 QString FrameType::ACTIVE_SERVERS_EXT = "ACTIVE_SERVERS_EXT";
 QString FrameType::ELECTION = "ELECTION";
+QString FrameType::ELECTION_STOP = "ELECTION_STOP";
 QString FrameType::COORDINATOR = "COORDINATOR";
 QString FrameType::UPLOAD = "UPLOAD";
 QString FrameType::INSERT = "INSERT";

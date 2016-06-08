@@ -14,6 +14,7 @@ public:
         static QString ACTIVE_SERVERS_DB;
         static QString ACTIVE_SERVERS_EXT;
         static QString ELECTION;
+        static QString ELECTION_STOP;
         static QString COORDINATOR;
         static QString UPLOAD;
         static QString INSERT;

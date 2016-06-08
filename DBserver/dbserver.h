@@ -27,7 +27,8 @@ class dbServer : public QObject
 public:
     dbServer(int extPort, int dbPort, int clientPort);
     void start();
-
+    bool isMasterCandidate;
+    int elecErrorCnt;
     struct Request{
         QStringList msg;
         QTcpSocket* socket;
@@ -62,6 +63,7 @@ private:
     void askForState();
     QStringList getDBState();
     void sendDBStateToAll();
+    void sendNewMasterToAll();
     QStringList makeFrame(QString frameType);
     QStringList makeFrame(QString frameType, QStringList data);
     QStringList makeFrame(QStringList data, int timeStamp);
@@ -96,6 +98,7 @@ private:
     void status(Request& r, int sender);
     void statusOK(Request& r, int sender);
     void election(Request& r, int sender);
+    void electionStop(Request& r, int sender);
     void coordinator(Request& r, int sender);
     void upload(LamportRequest & r, int sender);
     void insert(LamportRequest & r, int sender);

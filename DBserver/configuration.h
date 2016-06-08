@@ -19,6 +19,8 @@ public:
     int interval() {return interval_;}
     QVector<SServer> getExtServers(int maxNum);
     QVector<SServer> getDBServers(int maxNum);
+    QVector<SServer> getExtServersUnderMe();
+    QVector<SServer> getDBServersUnderMe();
     QMap<int, SServer>& getExtServers() { return servers;}
     QMap<int, SServer>& getDBServers() {return DBServers;}
     SServer& getExtServer(int num){return servers[num];}

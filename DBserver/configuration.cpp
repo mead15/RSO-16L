@@ -96,3 +96,23 @@ QVector<int> Configuration::getActiveExtServers(){
     }
     return result;
 }
+
+QVector<SServer> Configuration::getExtServersUnderMe(){
+    QVector<SServer> result;
+    for(auto i = servers.begin(); i!=servers.end(); i++){
+        if (i.value().getNum() < num_){
+            result.push_back(i.value());
+        }
+    }
+    return result;
+}
+
+QVector<SServer> Configuration::getDBServersUnderMe(){
+    QVector<SServer> result;
+    for(auto i = DBServers.begin(); i!=DBServers.end(); i++){
+        if (i.value().getNum() < num_){
+            result.push_back(i.value());
+        }
+    }
+    return result;
+}
