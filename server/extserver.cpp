@@ -305,7 +305,8 @@ void extServer::status(Request& r, int sender){
     log("master asked if i am ok");
     lastBeingAskedTime = QTime::currentTime();
     log("send him ok");
-    extPortListener->sendFrame(r.socket, makeFrame(FrameType::SERVER_STATUS_OK));
+    SServer srv = Configuration::getExtServer(sender);
+    extPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::SERVER_STATUS_OK));
     if(Configuration::getInstance().isMaster()){
         log("set new master " + QString::number(sender));
         Configuration::getInstance().setMaster(sender);
@@ -334,6 +335,7 @@ void extServer::election(Request& r, int sender){
 void extServer::electionStop(Request& r, int sender){
     log("ExtServers:: Election Stop!");
     isMasterCandidate = false;
+    elecErrorCnt = 0;
 }
 
 void extServer::coordinator(Request& r, int sender){
