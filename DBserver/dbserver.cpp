@@ -37,7 +37,8 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     
     extFunctionMap[FrameType::GET_ACTIVE_SERVERS_DB] = &dbServer::getActiveServersDB;
 
-    dbh = new DBHandler("192.168.0.40", "rso", "postgres", "haslord", 5432);
+    db_name = "rso";
+    dbh = new DBHandler("192.168.0.40", db_name, "postgres", "haslord", 5432);
 }
 
 void dbServer::start(){
@@ -404,7 +405,7 @@ void dbServer::upload(LamportRequest & r, int sender){
         sendErrorFrame(r, sender, 666);
     } else {
         file.remove();
-        proc.start("psql -d dbname -f /ex_tmp/filename.sql");
+        proc.start("psql -U postgres -d "+db_name+" -f /ex_tmp/filename.sql");
         if (!proc.waitForFinished() && proc.exitCode() != 0) {
             sendErrorFrame(r, sender, 666);
         } else {
@@ -641,11 +642,11 @@ void dbServer::getResult(Request& r, int sender){
             if (isXml){
                 QDomDocument xml;
                 xml.setContent(fileContent);
-                QDomNodeList nodes = xml.elementsByTagName("last_name");
+                QDomNodeList nodes = xml.elementsByTagName("patient");
                 for (int i = 0; i < nodes.count(); ++i)
                 {
                     QDomNode node = nodes.at(i);
-                    QDomElement child = node.firstChildElement("child");
+                    QDomElement child = node.firstChildElement("last_name");
                     if (!child.isNull())
                         node.removeChild(child);
                 }

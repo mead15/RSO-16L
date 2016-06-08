@@ -94,6 +94,7 @@ private:
     QTime lastAskingTime;
     QTime lastBeingAskedTime;
     int lockalTime;
+    QString db_name;
 
     void status(Request& r, int sender);
     void statusOK(Request& r, int sender);
