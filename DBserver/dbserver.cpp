@@ -5,8 +5,8 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     lastAskingTime = QTime::currentTime().addSecs( - Configuration::getInstance().interval() - 1);
     lastBeingAskedTime = QTime::currentTime();
     std::cout<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
-    extPortListener = new CipherAdapter(extPort);
-    dbPortListener = new CipherAdapter(dbPort);
+    extPortListener = new TcpServer(extPort);
+    dbPortListener = new TcpServer(dbPort);
     clientPortListener = new TcpServer(clientPort);
 
     QObject::connect(extPortListener, SIGNAL(log(QString)), this, SLOT(log(QString)));
@@ -149,7 +149,7 @@ void dbServer::frameClientAnalyze(Request & r){
     responseNumMap[rL.time] = servers.size() + 1; //ilość koniecznych potwiedzeń zapisu (wszystkie serwery + ja)
     requestOrder(rL);
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(r.msg, rL.time), i.value().getPubKey());
+        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(r.msg, rL.time));
     }
 }
 
@@ -194,16 +194,17 @@ void dbServer::stop(){
     running = false;
 }
 
-QString dbServer::logFile="log.txt";
+QString dbServer::logFile="/log.txt";
 
 void dbServer::log(QString text)
 {
-    QFile file(logFile);
+    QFile file(QCoreApplication::applicationDirPath() + logFile);
     file.open(QIODevice::Append);
     QTextStream out(&file);
     out <<QTime::currentTime().toString()<<": "<< text <<"\n";
     file.flush();
     file.close();
+    std::cout<<text.toStdString()<<std::endl;
 }
 
 void dbServer::masterAction(){
@@ -226,7 +227,7 @@ void dbServer::askForState(){
     log("ask for state");
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::STATUS), i.value().getPubKey());
+        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::STATUS));
     }
 }
 
@@ -245,7 +246,7 @@ void dbServer::sendDBStateToAll(){
     QStringList state = getDBState();
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state), i.value().getPubKey());
+        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state));
     }
 }
 
@@ -270,7 +271,7 @@ QStringList dbServer::makeClientFrame(QString frameType){
 }
 
 void dbServer::status(Request& r, int sender){
-    dbPortListener->sendFrame(r.socket, makeFrame(FrameType::SERVER_STATUS_OK), Configuration::getInstance().getDBServer(sender).getPubKey());
+    dbPortListener->sendFrame(r.socket, makeFrame(FrameType::SERVER_STATUS_OK));
     if(Configuration::getInstance().isMaster()){
         Configuration::getInstance().setMaster(sender);
     }
@@ -327,7 +328,7 @@ void dbServer::upload(LamportRequest & r, int sender){
     if(clients)
         checkAllReceived(FrameType::UPLOAD, r.time);
     else
-        dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::UPLOAD << "OK" << QString::number(r.time), lockalTime), Configuration::getInstance().getDBServer(sender).getPubKey());
+        dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::UPLOAD << "OK" << QString::number(r.time), lockalTime));
 }
 
 void dbServer::insert(LamportRequest & r, int sender){
@@ -363,7 +364,7 @@ void dbServer::insert(LamportRequest & r, int sender){
     if(clients)
         checkAllReceived(FrameType::INSERT, r.time);
     else
-        dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::INSERT << "OK" << QString::number(r.time), lockalTime), Configuration::getInstance().getDBServer(sender).getPubKey());
+        dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::INSERT << "OK" << QString::number(r.time), lockalTime));
 }
 
 void dbServer::attach(LamportRequest & r, int sender){
@@ -379,7 +380,7 @@ void dbServer::attach(LamportRequest & r, int sender){
         if(clients)
             checkAllReceived(FrameType::ATTACH, r.time);
         else
-            dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::ATTACH << "OK" << QString::number(r.time), lockalTime), Configuration::getInstance().getDBServer(sender).getPubKey());
+            dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::ATTACH << "OK" << QString::number(r.time), lockalTime));
     }else {
         sendErrorFrame(r, sender, 666);
     }
@@ -396,7 +397,7 @@ void dbServer::deletion(LamportRequest & r, int sender){
             if (clients)
                 checkAllReceived(FrameType::DELETE, r.time);
             else
-                dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::DELETE << "OK" << QString::number(r.time), lockalTime), Configuration::getInstance().getDBServer(sender).getPubKey());
+                dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::DELETE << "OK" << QString::number(r.time), lockalTime));
         } else
             sendErrorFrame(r, sender,666);
     }
@@ -411,7 +412,7 @@ void dbServer::unlink(LamportRequest & r, int sender){
         if (clients)
             checkAllReceived(FrameType::UNLINK, r.time);
         else
-            dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::UNLINK << "OK" << QString::number(r.time), lockalTime), Configuration::getInstance().getDBServer(sender).getPubKey());
+            dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::UNLINK << "OK" << QString::number(r.time), lockalTime));
     } else {
         sendErrorFrame(r, sender, 666);
     }
@@ -457,7 +458,7 @@ void dbServer::getActiveServersDB(Request& r, int sender){
         if(i.value().isActive())
             result<<QString::number(i.key());
     }
-    extPortListener->sendFrame(r.socket, makeFrame(FrameType::ACTIVE_SERVERS_DB, result), Configuration::getInstance().getExtServer(sender).getPubKey());
+    extPortListener->sendFrame(r.socket, makeFrame(FrameType::ACTIVE_SERVERS_DB, result));
 }
 
 void dbServer::activeServersDB(Request& r, int sender){
@@ -485,7 +486,7 @@ void dbServer::getAvailableResults(Request& r, int sender){
                 for (int i =0; i < result.size(); i++){
                     frameResult << result.at(i);
                 }
-                extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_AVAILABLE_RESULTS, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+                extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_AVAILABLE_RESULTS, frameResult));
             } else {
                 sendErrorFrame(r, sender, 666);
             }
@@ -511,7 +512,7 @@ void dbServer::getAvailableResults(Request& r, int sender){
                 for (int i =0; i < result.size(); i++){
                     frameResult << result.at(i);
                 }
-                extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_AVAILABLE_RESULTS, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+                extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_AVAILABLE_RESULTS, frameResult));
             } else {
                 sendErrorFrame(r, sender, 666);
             }
@@ -549,7 +550,7 @@ void dbServer::getResult(Request& r, int sender){
                 fileContent = xml.toByteArray();
             }
             frameResult << r.msg[2] <<result.at(0).at(0).left(lastSlash) << size << fileContent.toBase64();
-            extPortListener->sendFrame(r.socket, makeFrame(FrameType::RESULT, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+            extPortListener->sendFrame(r.socket, makeFrame(FrameType::RESULT, frameResult));
         }
         dbh->closeDB();
     } else {
@@ -600,7 +601,7 @@ void dbServer::getStatistics(Request& r, int sender){
             for (int i =0; i < result.size(); i++){
                 frameResult << result.at(i);
             }
-            extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_STATISTICS, frameResult), Configuration::getInstance().getExtServer(sender).getPubKey());
+            extPortListener->sendFrame(r.socket, makeFrame(FrameType::GET_STATISTICS, frameResult));
         }
         dbh->closeDB();
     } else {
@@ -610,7 +611,7 @@ void dbServer::getStatistics(Request& r, int sender){
 
 
 void dbServer::sendErrorFrame(Request& r, int sender, int errorCode){
-        extPortListener->sendFrame(r.socket, makeFrame(FrameType::ERROR, QStringList() << r.msg[2] << QString(errorCode) ), Configuration::getInstance().getExtServer(sender).getPubKey());
+        extPortListener->sendFrame(r.socket, makeFrame(FrameType::ERROR, QStringList() << r.msg[2] << QString(errorCode) ));
 }
 
 void dbServer::sendErrorFrame(LamportRequest& r, int sender, int errorCode){
@@ -620,7 +621,7 @@ void dbServer::sendErrorFrame(LamportRequest& r, int sender, int errorCode){
         responseNumMap.remove(r.time);
         clientSocketMap.remove(r.time);
     } else {
-        dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::ERROR << QString(errorCode) << QString::number(r.time),lockalTime), Configuration::getInstance().getDBServer(sender).getPubKey());
+        dbPortListener->sendFrame(r.socket, makeFrame(QStringList() << FrameType::ERROR << QString(errorCode) << QString::number(r.time),lockalTime));
     }
 }
 

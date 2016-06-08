@@ -6,7 +6,7 @@ extServer::extServer(int extPort, int dbPort, int clientPort){
     elecErrorCnt = 0;
     lastAskingTime = QTime::currentTime().addSecs( - Configuration::getInstance().interval() - 1);
     lastBeingAskedTime = QTime::currentTime();
-    std::cout<<"myNum:"<<Configuration::getInstance().myNum()<<", ports: "<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
+    //std::cout<<"myNum:"<<Configuration::getInstance().myNum()<<", ports: "<<extPort<<" "<<dbPort<<" "<<clientPort<<std::endl;
     extPortListener = new TcpServer(extPort);
     dbPortListener = new TcpServer(dbPort);
     clientPortListener = new TcpServer(clientPort);
@@ -61,9 +61,8 @@ void extServer::start(){
     }
 }
 
-QString extServer::logFile="log.txt";
-
 void extServer::mainLoop(){
+    log("loop");
     if(this->clientQueue.isEmpty() && this->extQueue.isEmpty() && this->dbQueue.isEmpty()){
         QTime dieTime= QTime::currentTime().addSecs(5);
         while (QTime::currentTime() < dieTime)
@@ -113,18 +112,21 @@ void extServer::frameClientReceived(QTcpSocket*socket, QStringList msg){
 }
 
 void extServer::frameExtAnalyze(Request &r){
+    log('analyze ext frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
     (this->*(extFunctionMap[type]))(r, sender);
 }
 
 void extServer::frameDBAnalyze(Request r){
+    log('analyze db frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
     (this->*(dbFunctionMap[type]))(r, sender);
 }
 
 void extServer::frameClientAnalyze(Request r){
+    log('analyze client frame ' + r.msg.join(","));
     QString type = r.msg[0];
     (this->*(clientFunctionMap[type]))(r, 0);
 }
@@ -506,14 +508,17 @@ int extServer::randInt(int low, int high)
 return qrand() % ((high + 1) - low) + low;
 }
 
+QString extServer::logFile="/log.txt";
+
 void extServer::log(QString text)
 {
-    QFile file(logFile);
+    QFile file(QCoreApplication::applicationDirPath() + logFile);
     file.open(QIODevice::Append);
     QTextStream out(&file);
     out <<QTime::currentTime().toString()<<": "<< text <<"\n";
     file.flush();
     file.close();
+    std::cout<<text.toStdString()<<std::endl;
 }
 
 void extServer::stop(){

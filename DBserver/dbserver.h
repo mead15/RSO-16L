@@ -75,8 +75,8 @@ private:
 
     DBHandler* dbh;
 
-    CipherAdapter* extPortListener;
-    CipherAdapter* dbPortListener;
+    TcpServer* extPortListener;
+    TcpServer* dbPortListener;
     TcpServer* clientPortListener;
 
     typedef void (dbServer::*RsponseFunc)(Request&, int);

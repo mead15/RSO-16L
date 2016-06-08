@@ -9,18 +9,16 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    QString configPath = "settings.ini";
-    QString privKeyPath = "~/.ssh/id_rsa";
+    QString configPath = QCoreApplication::applicationDirPath() + "/settings.ini";
 
-    //if(argc>3){
+    if(argc>1){
         //int num = atoi(argv[1]);
         //int master = atoi(argv[2]);
         int num = atoi(argv[1]);
-        int master = 1;
+        //int master = 1;
         // load config
         Configuration::getInstance().loadConfig(configPath);
         Configuration::getInstance().setMyNum(num);
-        Configuration::getInstance().setMaster(master);
         Configuration::getInstance().setServerActive(num, true);
 
         // load key
@@ -46,10 +44,10 @@ int main(int argc, char *argv[])
         dbServer server(me.getPortExt(), me.getPortDB(), me.getPortClient());
         server.start();
 
-    //}
-    //else{
-        //std::cout<<"Invalid arguments"<<std::endl;
-   // }
+    }
+    else{
+        std::cout<<"Invalid arguments"<<std::endl;
+    }
 
     return a.exec();
 }
