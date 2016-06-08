@@ -115,7 +115,7 @@ void extServer::frameExtAnalyze(Request &r){
     log('analyze ext frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    if(extFunctionMap.find(type)!=nullptr)
+    if(extFunctionMap.find(type)!=extFunctionMap.end())
         (this->*(extFunctionMap[type]))(r, sender);
 }
 
@@ -123,14 +123,14 @@ void extServer::frameDBAnalyze(Request r){
     log('analyze db frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    if(dbFunctionMap.find(type)!=nullptr)
+    if(dbFunctionMap.find(type)!=dbFunctionMap.end())
         (this->*(dbFunctionMap[type]))(r, sender);
 }
 
 void extServer::frameClientAnalyze(Request r){
     log('analyze client frame ' + r.msg.join(","));
     QString type = r.msg[0];
-    if(clientFunctionMap.find(type)!=nullptr)
+    if(clientFunctionMap.find(type)!=clientFunctionMap.end())
         (this->*(clientFunctionMap[type]))(r, 0);
 }
 
@@ -233,8 +233,10 @@ void extServer::askForState(){
     log("ExtServers:: Check if alive");
     QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        log("ask " + QString::number( i.value().getNum()));
-        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::STATUS));
+        if(i.value().getNum()!=Configuration::getInstance().myNum()){
+            log("ask " + QString::number( i.value().getNum()));
+            extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::STATUS));
+        }
     }
     lastAskingTime = QTime::currentTime();
 }
@@ -265,8 +267,10 @@ void extServer::sendExtStateToAll(){
     log(state.join(" "));
     QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        log("send to " + i.value().getIp());
-        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_EXT, state));
+        if(i.value().getNum()!=Configuration::getInstance().myNum()){
+            log("send to " + i.value().getIp());
+            extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_EXT, state));
+        }
     }
 }
 
@@ -274,8 +278,10 @@ void extServer::sendNewMasterToAll(){
     log("ExtServers:: NEW Master! -> " + QString::number(Configuration::getInstance().myNum()));
     QMap<int, SServer> servers = Configuration::getInstance().getExtServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        log("send to " + i.value().getIp());
-        extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::COORDINATOR));
+        if(i.value().getNum()!=Configuration::getInstance().myNum()){
+            log("send to " + i.value().getIp());
+            extPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortExt(), makeFrame(FrameType::COORDINATOR));
+        }
     }
 }
 
