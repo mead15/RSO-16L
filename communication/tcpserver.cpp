@@ -18,7 +18,8 @@ void TcpServer::sendFrame(QHostAddress recipient, int port, QStringList content)
     socket.write(packet.toStdString().c_str());
     if(!socket.waitForBytesWritten(3000))
     {
-        emit log("Could not send frame to "+socket.peerAddress().toString()+":"+QString::number(socket.localPort()));
+        emit log("(QHostAddress)Could not send frame to "+socket.peerAddress().toString()+":"+QString::number(socket.localPort())+" "+\
+                 content.join(","));
         emit error(recipient.toString(), "SEND_FRAME_ERROR");    //todo
     }
 }
@@ -31,7 +32,8 @@ void TcpServer::sendFrame(QTcpSocket *recipient, QStringList content)
     recipient->write(packet.toStdString().c_str());
     if(!recipient->waitForBytesWritten(3000))
     {
-        emit log("Could not send frame to "+recipient->peerAddress().toString()+":"+QString::number(recipient->localPort()));
+        emit log("(QTcpSocket)Could not send frame to "+recipient->peerAddress().toString()+":"+QString::number(recipient->localPort())+" "+\
+                 content.join(","));
         emit error(recipient->peerAddress().toString(), "SEND_FRAME_ERROR");    //todo
     }
 }

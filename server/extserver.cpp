@@ -182,6 +182,7 @@ void extServer::masterAction(){
         log("i am master");
         if(lastAskingTime.secsTo(QTime::currentTime()) >= Configuration::getInstance().interval() )
             askForState();
+            askDBForState();
 
     }
     else{
@@ -239,6 +240,16 @@ void extServer::askForState(){
         }
     }
     lastAskingTime = QTime::currentTime();
+}
+
+void extServer::askDBForState(){
+    log("ExtServers:: SEND GET_AVAIALBLE_SERVERS_TO to random DBServer");
+    QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+
+        int dbServer_nb = randInt(0, servers.size()-1);
+        SServer srv = servers[dbServer_nb];
+        //log("send " + result.join(",") + " to " + QString::number(srv.getNum()));
+        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_ACTIVE_SERVERS_DB));
 }
 
 QStringList extServer::getExtState(){
@@ -305,7 +316,13 @@ void extServer::status(Request& r, int sender){
     log("master asked if i am ok");
     lastBeingAskedTime = QTime::currentTime();
     log("send him ok");
-    extPortListener->sendFrame(r.socket, makeFrame(FrameType::SERVER_STATUS_OK));
+    if(r.socket->isOpen()){
+
+    }else{
+        log("Socket is not open!");
+    }
+    SServer srv = Configuration::getInstance().getExtServer(sender);
+    extPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::SERVER_STATUS_OK));
     if(Configuration::getInstance().isMaster()){
         log("set new master " + QString::number(sender));
         Configuration::getInstance().setMaster(sender);
@@ -327,13 +344,15 @@ void extServer::election(Request& r, int sender){
     log("get election");
     isMasterCandidate = true;//jest w startElection
     log("send election stop");
-    extPortListener->sendFrame(r.socket, makeFrame(FrameType::ELECTION_STOP));
+    SServer srv = Configuration::getInstance().getExtServer(sender);
+    extPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::ELECTION_STOP));
     startElection();
 }
 
 void extServer::electionStop(Request& r, int sender){
     log("ExtServers:: Election Stop!");
     isMasterCandidate = false;
+    elecErrorCnt = 0;
 }
 
 void extServer::coordinator(Request& r, int sender){
@@ -352,7 +371,8 @@ void extServer::getActiveServersExt(Request& r, int sender){
             result<<QString::number(i.key());
     }
     log(result.join(" "));
-    dbPortListener->sendFrame(r.socket, makeFrame(FrameType::ACTIVE_SERVERS_EXT, result));
+    SServer srv = Configuration::getInstance().getDBServer(sender);
+    dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::ACTIVE_SERVERS_EXT, result));
 }
 
 void extServer::activeServersExt(Request& r, int sender){

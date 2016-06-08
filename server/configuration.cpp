@@ -1,5 +1,5 @@
 #include "configuration.h"
-
+#include "iostream"
 
 Configuration& Configuration::getInstance(){
     static Configuration instance;
@@ -81,6 +81,7 @@ bool Configuration::loadConfig(QString& path){
         int portDB = setting.value("serwer"+QString::number(i)+"/portDB", 0).toInt();
         int portClient = setting.value("serwer"+QString::number(i)+"/portClient", 0).toInt();
         QString stype = setting.value("serwer"+QString::number(i)+"/type","srv").toString();
+        std::cout<<i<<" "<<ip.toStdString()<<" "<<portExt<<" "<<portDB<<" "<<portClient<<std::endl;
         SrvType type;
         if(stype == "srv"){
             type = SrvType::SRV;
