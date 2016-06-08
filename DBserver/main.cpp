@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     //if(argc>3){
         //int num = atoi(argv[1]);
         //int master = atoi(argv[2]);
-        int num = 4;
+        int num = atoi(argv[1]);
         int master = 1;
         // load config
         Configuration::getInstance().loadConfig(configPath);
