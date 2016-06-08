@@ -12,6 +12,7 @@ exitCode Client::send(QStringList what)
     int serverId = 0;
     while(probowacDalej && serverId < servers_->size())
     {
+        socket.abort();
         socket.connectToHost(servers_->at(serverId).ip, servers_->at(serverId).port);
         if(socket.waitForConnected(3000))
         {
@@ -23,6 +24,7 @@ exitCode Client::send(QStringList what)
             }
             else
             {
+               //
                 probowacDalej = false;
                 return OK;
             }
