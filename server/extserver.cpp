@@ -182,6 +182,7 @@ void extServer::masterAction(){
         log("i am master");
         if(lastAskingTime.secsTo(QTime::currentTime()) >= Configuration::getInstance().interval() )
             askForState();
+            askDBForState();
 
     }
     else{
@@ -239,6 +240,16 @@ void extServer::askForState(){
         }
     }
     lastAskingTime = QTime::currentTime();
+}
+
+void extServer::askDBForState(){
+    log("ExtServers:: SEND GET_AVAIALBLE_SERVERS_TO to random DBServer");
+    QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+
+        int dbServer_nb = randInt(0, servers.size()-1);
+        SServer srv = servers[dbServer_nb];
+        //log("send " + result.join(",") + " to " + QString::number(srv.getNum()));
+        dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_ACTIVE_SERVERS_DB));
 }
 
 QStringList extServer::getExtState(){

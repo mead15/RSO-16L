@@ -54,6 +54,7 @@ private:
     void frameDBAnalyze(Request r);
     void frameClientAnalyze(Request r);
     void askForState();
+    void askDBForState();
     QStringList getExtState();
     QStringList getDBState();
     void sendExtStateToAll();
