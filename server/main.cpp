@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     QString configPath = QCoreApplication::applicationDirPath() + "/settings.ini";
 
 
-    if(argc>1){
+//    if(argc>1){
         int num = atoi(argv[1]);
 
         Configuration::getInstance().loadConfig(configPath);
@@ -44,10 +44,10 @@ int main(int argc, char *argv[])
         extServer server(me.getPortExt(), me.getPortDB(), me.getPortClient());
         server.start();
 
-   }
-   else{
-        std::cout<<"Invalid arguments"<<std::endl;
-   }
+//   }
+//   else{
+//        std::cout<<"Invalid arguments"<<std::endl;
+//   }
 
     return a.exec();
 }
