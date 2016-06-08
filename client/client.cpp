@@ -7,6 +7,7 @@ Client::Client()
 
 exitCode Client::send(QStringList what)
 {
+    //queue++;
     bool probowacDalej = true;
     int serverId = 0;
     while(probowacDalej && serverId < servers_->size())
@@ -49,9 +50,10 @@ void Client::receive()
 
 void Client::handle(QStringList what)
 {
-    std::cout << "<" << what.join("").toStdString() << ">" << std::endl;
+    //std::cout << "<" << what.join("").toStdString() << ">" << std::endl;
     if(what.at(0) == "ACTIVE_SERVERS")
     {
+        //std::cout << "ACT_SRC" << std::endl;
         int num = what.at(1).toInt();
         settings->clear();
         servers_->clear();
@@ -103,4 +105,5 @@ void Client::handle(QStringList what)
             std::cout << a.join(",").toStdString() << std::endl;
         }
     }
+    //queue--;
 }

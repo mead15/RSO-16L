@@ -38,6 +38,8 @@ extServer::extServer(int extPort, int dbPort, int clientPort){
     dbFunctionMap[FrameType::RESULTS] = &extServer::results;
     dbFunctionMap[FrameType::RESULT] = &extServer::result;
     dbFunctionMap[FrameType::STATISTICS] = &extServer::statistics;
+    dbFunctionMap[FrameType::STATUS] = &extServer::status;
+    dbFunctionMap[FrameType::COORDINATOR] == &extServer::coordinator;
 
     clientFunctionMap[FrameType::ACTIVE_SERVERS] = &extServer::activeServers;
     clientFunctionMap[FrameType::GET_AVAILABLE_RESULTS] = &extServer::getAvailableResults;

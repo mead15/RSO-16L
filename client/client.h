@@ -23,6 +23,7 @@ public:
     QSettings* settings;
     void setServers(QVector<Server>* servers) { servers_ = servers; }
     exitCode send(QStringList what);
+    int queue;
 private:
     QVector<Server>* servers_;
 public slots:

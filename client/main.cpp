@@ -44,12 +44,16 @@ int main(int argc, char *argv[])
     client.setServers(&servers);
     client.settings = &settings;
 
+    //std::cout << "ACT?" << std::endl;
     if(client.send(QStringList() << "ACTIVE_SERVERS") == NO_SERVERS)
     {
         std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
         exit(10);
     }
+    client.socket.waitForReadyRead(5000);
 
+    /*if(client.queue == 0)
+        exit(0);*/
     //sprawdzenie parametrów wywołania
     QStringList args = QCoreApplication::arguments();
 
@@ -99,6 +103,8 @@ int main(int argc, char *argv[])
             }
         }
     }
+    client.socket.waitForReadyRead(5000);
+    exit(0);
 
     return a.exec();
 }
