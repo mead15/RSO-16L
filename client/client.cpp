@@ -87,6 +87,7 @@ void Client::handle(QStringList what)
     else if(what.at(0) == "RESULT")
     {
         QString filename = what.at(1);
+        std::cout << filename.toStdString() << std::endl;
         QByteArray content = QByteArray::fromBase64(what.at(3).toLatin1());
         QFile file(filename);
         if(file.open(QIODevice::WriteOnly))
