@@ -1,0 +1,9 @@
+Tworzenie bazy : psql -f <nazwa pliku>
+
+np. psql -f mkdb.sql
+
+Tworzenie przykladowych danych (tworzy pary wierszy patient-examination i pliki png/xml):
+
+perl gensql.pl <liczba wierszy> > <sciezka do pliku wyjsciowego>
+
+np. perl gensql.pl 50000 > data.sql
