@@ -115,7 +115,7 @@ void extServer::frameExtAnalyze(Request &r){
     log('analyze ext frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    if(extFunctionMap.find(type)!=nullptr)
+    if(extFunctionMap.find(type)!=extFunctionMap.end())
         (this->*(extFunctionMap[type]))(r, sender);
 }
 
@@ -123,14 +123,14 @@ void extServer::frameDBAnalyze(Request r){
     log('analyze db frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    if(dbFunctionMap.find(type)!=nullptr)
+    if(dbFunctionMap.find(type)!=dbFunctionMap.end())
         (this->*(dbFunctionMap[type]))(r, sender);
 }
 
 void extServer::frameClientAnalyze(Request r){
     log('analyze client frame ' + r.msg.join(","));
     QString type = r.msg[0];
-    if(clientFunctionMap.find(type)!=nullptr)
+    if(clientFunctionMap.find(type)!=clientFunctionMap.end())
         (this->*(clientFunctionMap[type]))(r, 0);
 }
 
