@@ -128,14 +128,16 @@ void dbServer::frameExtAnalyze(Request &r){
     log('analyze ext frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    (this->*(extFunctionMap[type]))(r, sender);
+    if(extFunctionMap.find(type)!=extFunctionMap.end())
+        (this->*(extFunctionMap[type]))(r, sender);
 }
 
 void dbServer::frameDBAnalyze(Request & r){
     log('analyze db frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    (this->*(dbFunctionMap[type]))(r, sender);
+    if(dbFunctionMap.find(type)!=dbFunctionMap.end())
+        (this->*(dbFunctionMap[type]))(r, sender);
 }
 
 void dbServer::frameDBAnalyze(LamportRequest & r){
@@ -147,7 +149,8 @@ void dbServer::frameDBAnalyze(LamportRequest & r){
     else
         type = r.msg[1];
     log(type);
-    (this->*(dbFunctionMapLR[type]))(r, sender);
+    if(dbFunctionMap.find(type)!=dbFunctionMap.end())
+        (this->*(dbFunctionMapLR[type]))(r, sender);
 }
 
 void dbServer::frameClientAnalyze(Request & r){
@@ -282,8 +285,10 @@ void dbServer::askForState(){
     log("DbServers:: Check if alive");
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        log("ask " + QString::number( i.value().getNum()));
-        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::STATUS));
+        if(i.value().getNum()!=Configuration::getInstance().myNum()){
+            log("ask " + QString::number( i.value().getNum()));
+            dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::STATUS));
+        }
     }
 }
 
@@ -304,8 +309,10 @@ void dbServer::sendDBStateToAll(){
     QStringList state = getDBState();
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        log("send to " + i.value().getIp());
-        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state));
+        if(i.value().getNum()!=Configuration::getInstance().myNum()){
+            log("send to " + i.value().getIp());
+            dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::ACTIVE_SERVERS_DB, state));
+        }
     }
 }
 
@@ -313,8 +320,10 @@ void dbServer::sendNewMasterToAll(){
     log("ExtServers:: NEW Master! -> " + QString::number(Configuration::getInstance().myNum()));
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
-        log("send to " + i.value().getIp());
-        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::COORDINATOR));
+        if(i.value().getNum()!=Configuration::getInstance().myNum()){
+            log("send to " + i.value().getIp());
+            dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::COORDINATOR));
+        }
     }
 }
 
