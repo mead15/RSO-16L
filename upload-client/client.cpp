@@ -17,14 +17,17 @@ exitCode Client::send(QStringList what)
             if(!socket.waitForBytesWritten(3000))
             {
                 //połączono, ale nie odebrano zapytania
+                std::cout << "Polaczono, nie odebrano" << std::endl;
             }
             else
             {
+                //std::cout << "ok" << std::endl;
                 return OK;
             }
         }
         else
         {
+            std::cout << "nie udalo sie polaczyc" << std::endl;
             //nie udało się połączyć
         }
 

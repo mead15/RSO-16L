@@ -45,20 +45,20 @@ int main(int argc, char *argv[])
         if(client.send(QStringList() << "UPLOAD" << data) == NO_SERVERS)
         {
             std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            a.exit(10);
         }
     }
     else if(args.at(3) == "insert")
     {
         QStringList columns;
-        for(int i=3; i<args.size(); ++i)
+        for(int i=5; i<args.size(); ++i)
         {
             columns << args.at(i);
         }
-        if(client.send(QStringList() << "INSERT" << args.at(2) << columns) == NO_SERVERS)
+        if(client.send(QStringList() << "INSERT" << args.at(4) << columns) == NO_SERVERS)
         {
             std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            a.exit(10);
         }
     }
     else if(args.at(3) == "attach")
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         if(client.send(QStringList() << "ATTACH" << args.at(4) << data) == NO_SERVERS)
         {
             std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            a.exit(10);
         }
     }
     else if(args.at(3) == "delete")
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
         if(client.send(QStringList() << "DELETE" << args.at(4) << args.at(5)) == NO_SERVERS)
         {
             std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            a.exit(10);
         }
     }
     else if(args.at(3) == "unlink")
@@ -85,12 +85,13 @@ int main(int argc, char *argv[])
         if(client.send(QStringList() << "UNLINK" << args.at(4) << args.at(3)) == NO_SERVERS)
         {
             std::cout << "nie można się z niczym połączyć lub nikt nie akceptuje zapytań\n";
-            exit(10);
+            a.exit(10);
         }
     }
-
+    else{
     std::cerr << "Nieznany błąd" << std::endl;
     exit(11);
+    }
 
     return a.exec();
 }

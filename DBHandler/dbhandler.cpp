@@ -4,7 +4,7 @@ DBHandler::DBHandler(){
 
 	// @TODO wyciaganie z pliku konfiguracyjnego ?
     db = QSqlDatabase::addDatabase("QPSQL");
-    db.setHostName("192.168.1.3");
+    db.setHostName("192.168.0.40");
     db.setDatabaseName("rso");
     db.setUserName("postgres");
     db.setPassword("haslord");

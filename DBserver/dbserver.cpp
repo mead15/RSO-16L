@@ -37,7 +37,7 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     
     extFunctionMap[FrameType::GET_ACTIVE_SERVERS_DB] = &dbServer::getActiveServersDB;
 
-    dbh = new DBHandler("localhost", "rso", "postgres", "haslord", 5432);
+    dbh = new DBHandler("192.168.0.40", "rso", "postgres", "haslord", 5432);
 }
 
 void dbServer::start(){
