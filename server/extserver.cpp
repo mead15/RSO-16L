@@ -305,7 +305,7 @@ void extServer::status(Request& r, int sender){
     log("master asked if i am ok");
     lastBeingAskedTime = QTime::currentTime();
     log("send him ok");
-    SServer srv = Configuration::getExtServer(sender);
+    SServer srv = Configuration::getInstance().getExtServer(sender);
     extPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::SERVER_STATUS_OK));
     if(Configuration::getInstance().isMaster()){
         log("set new master " + QString::number(sender));
