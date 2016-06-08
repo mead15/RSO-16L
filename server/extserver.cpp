@@ -115,20 +115,23 @@ void extServer::frameExtAnalyze(Request &r){
     log('analyze ext frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    (this->*(extFunctionMap[type]))(r, sender);
+    if(extFunctionMap.find(type)!=nullptr)
+        (this->*(extFunctionMap[type]))(r, sender);
 }
 
 void extServer::frameDBAnalyze(Request r){
     log('analyze db frame ' + r.msg.join(","));
     int sender = r.msg[0].toInt();
     QString type = r.msg[1];
-    (this->*(dbFunctionMap[type]))(r, sender);
+    if(dbFunctionMap.find(type)!=nullptr)
+        (this->*(dbFunctionMap[type]))(r, sender);
 }
 
 void extServer::frameClientAnalyze(Request r){
     log('analyze client frame ' + r.msg.join(","));
     QString type = r.msg[0];
-    (this->*(clientFunctionMap[type]))(r, 0);
+    if(clientFunctionMap.find(type)!=nullptr)
+        (this->*(clientFunctionMap[type]))(r, 0);
 }
 
 void extServer::frameExtReceivedError(QString ip, QString error){
@@ -179,6 +182,7 @@ void extServer::masterAction(){
         log("i am master");
         if(lastAskingTime.secsTo(QTime::currentTime()) >= Configuration::getInstance().interval() )
             askForState();
+
     }
     else{
         log("i am not master");
@@ -330,6 +334,7 @@ void extServer::coordinator(Request& r, int sender){
     log("ExtServers:: NEW Master! -> " + QString::number(sender));
     isMasterCandidate = false;
     Configuration::getInstance().setMaster(sender);
+    lastAskingTime=QTime::currentTime();
 }
 
 void extServer::getActiveServersExt(Request& r, int sender){

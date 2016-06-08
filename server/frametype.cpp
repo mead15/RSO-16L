@@ -5,7 +5,7 @@ QString FrameType::ERROR = "ERROR";
 QString FrameType::SERVER_STATUS_OK = "STATUS_OK";
 QString FrameType::OK = "OK";
 
-//DB - DB
+//EXT - EXT
 QString FrameType::STATUS = "STATUS";
 QString FrameType::ACTIVE_SERVERS_DB = "ACTIVE_SERVERS_DB";
 QString FrameType::ACTIVE_SERVERS_EXT = "ACTIVE_SERVERS_EXT";
