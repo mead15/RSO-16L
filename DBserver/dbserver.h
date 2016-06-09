@@ -54,7 +54,7 @@ private:
     void mainLoop();
     void masterAction();
     void synchronizeClock(int timeStamp);
-    void requestOrder(LamportRequest r);
+    void requestOrder(LamportRequest & r);
     void startElection();
     void frameExtAnalyze(Request & r);
     void frameDBAnalyze(Request & r);
@@ -89,11 +89,12 @@ private:
 
     QMap<int, QTcpSocket*> clientSocketMap;
     QMap<int, int> responseNumMap;
+    QMap<int, QString> responseFrameMap;
 
     bool running;
     QTime lastAskingTime;
     QTime lastBeingAskedTime;
-    int lockalTime;
+    int localTime;
     QString db_name;
 
     void status(Request& r, int sender);

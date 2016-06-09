@@ -38,13 +38,13 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
     extFunctionMap[FrameType::GET_ACTIVE_SERVERS_DB] = &dbServer::getActiveServersDB;
 
     db_name = "rso";
-    dbh = new DBHandler("192.168.0.40", db_name, "postgres", "haslord", 5432);
+    dbh = new DBHandler("192.168.0.16", db_name, "postgres", "haslord", 5432);
 }
 
 void dbServer::start(){
     this->log("Start server");
     running = true;
-    lockalTime =0;
+    localTime =0;
     extPortListener->start();
     dbPortListener->start();
     clientPortListener->start();
@@ -55,7 +55,7 @@ void dbServer::start(){
 }
 
 void dbServer::mainLoop(){
-    lockalTime += 1;
+    localTime += 1;
     if(this->clientQueue.isEmpty() && this->extQueue.isEmpty() && this->dbQueue.isEmpty() && this->dbQueueModify.isEmpty()){
         QTime dieTime= QTime::currentTime().addSecs(5);
         while (QTime::currentTime() < dieTime)
@@ -150,7 +150,7 @@ void dbServer::frameDBAnalyze(LamportRequest & r){
     else
         type = r.msg[1];
     log(type);
-    if(dbFunctionMap.find(type)!=dbFunctionMap.end())
+    if(dbFunctionMapLR.find(type)!=dbFunctionMapLR.end())
         (this->*(dbFunctionMapLR[type]))(r, sender);
 }
 
@@ -159,15 +159,24 @@ void dbServer::frameClientAnalyze(Request & r){
     LamportRequest rL;
     rL.msg = QStringList() << "0" << r.msg;
     rL.socket = r.socket;
-    rL.time = lockalTime;
+    rL.time = localTime;
+    //QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
+    QVector<int> serversAct = Configuration::getInstance().getActiveDBServers();
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     clientSocketMap[rL.time] = rL.socket;
-    responseNumMap[rL.time] = servers.size() + 1; //ilość koniecznych potwiedzeń zapisu (wszystkie serwery + ja)
+    responseNumMap[rL.time] = serversAct.size(); //ilość koniecznych potwiedzeń zapisu (wszystkie serwery + ja)
+    responseFrameMap[rL.time] = r.msg[0];
     log("request order");
     requestOrder(rL);
-    for (auto i = servers.begin(); i!=servers.end(); i++){
-        log("propagate to: " + QString::number(i.value().getNum()));
-        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(r.msg, rL.time));
+//    for (auto i = servers.begin(); i!=servers.end(); i++){
+//        log("propagate to: " + QString::number(i.value().getNum()));
+//        dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(r.msg, rL.time));
+//    }
+    for (int i = serversAct.first(); i<=serversAct.last(); i++){
+        if (i != Configuration::getInstance().myNum()){
+        log("propagate to: " + QString::number(servers[i].getNum()));
+        dbPortListener->sendFrame(QHostAddress(servers[i].getIp()), servers[i].getPortDB(), makeFrame(r.msg, rL.time));
+        }
     }
 }
 
@@ -193,15 +202,15 @@ void dbServer::frameClientRecivedError(QString error, QString ip){
 }
 
 void dbServer::synchronizeClock(int timeStamp){
-    log("old local time: " + QString::number(lockalTime));
+    log("old local time: " + QString::number(localTime));
     log("timestamp: " + QString::number(timeStamp));
-    if (lockalTime <= timeStamp){
-        lockalTime = timeStamp + 1;
+    if (localTime <= timeStamp){
+        localTime = timeStamp + 1;
     }
-    log("new local time: " + QString::number(lockalTime));
+    log("new local time: " + QString::number(localTime));
 }
 
-void dbServer::requestOrder(LamportRequest r){
+void dbServer::requestOrder(LamportRequest & r){
     for (int i = 0; i<dbQueueModify.size(); i++){
         if(this->dbQueueModify[i].time > r.time){
             this->dbQueueModify.insert(i-1, r);
@@ -422,7 +431,7 @@ void dbServer::upload(LamportRequest & r, int sender){
     if(clients)
         checkAllReceived(FrameType::UPLOAD, r.time);
     else
-        dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::UPLOAD << "OK" << QString::number(r.time), lockalTime));
+        dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::UPLOAD << "OK" << QString::number(r.time), localTime));
 }
 
 void dbServer::insert(LamportRequest & r, int sender){
@@ -456,10 +465,13 @@ void dbServer::insert(LamportRequest & r, int sender){
     } else {
         sendErrorFrame(r, sender, 666);
     }
-    if(clients)
+    if(clients){
         checkAllReceived(FrameType::INSERT, r.time);
-    else
-        dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::INSERT << "OK" << QString::number(r.time), lockalTime));
+    }
+    else{
+        dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::INSERT << "OK" << QString::number(r.time), localTime));
+        log("send frame to" + QString::number(sender));
+    }
 }
 
 void dbServer::attach(LamportRequest & r, int sender){
@@ -476,7 +488,7 @@ void dbServer::attach(LamportRequest & r, int sender){
         if(clients)
             checkAllReceived(FrameType::ATTACH, r.time);
         else
-            dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::ATTACH << "OK" << QString::number(r.time), lockalTime));
+            dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::ATTACH << "OK" << QString::number(r.time), localTime));
     }else {
         sendErrorFrame(r, sender, 666);
     }
@@ -494,7 +506,7 @@ void dbServer::deletion(LamportRequest & r, int sender){
             if (clients)
                 checkAllReceived(FrameType::DELETE, r.time);
             else
-                dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::DELETE << "OK" << QString::number(r.time), lockalTime));
+                dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::DELETE << "OK" << QString::number(r.time), localTime));
         } else
             sendErrorFrame(r, sender,666);
     }
@@ -510,7 +522,7 @@ void dbServer::unlink(LamportRequest & r, int sender){
         if (clients)
             checkAllReceived(FrameType::UNLINK, r.time);
         else
-            dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::UNLINK << "OK" << QString::number(r.time), lockalTime));
+            dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::UNLINK << "OK" << QString::number(r.time), localTime));
     } else {
         sendErrorFrame(r, sender, 666);
     }
@@ -528,10 +540,14 @@ void dbServer::okReceived(LamportRequest& r, int sender){
 void dbServer::errorReceived(LamportRequest& r, int sender){
     log("recived error " + QString::number(sender));
     int stamp = r.msg[3].toInt();
-    responseNumMap.remove(stamp);
-    clientSocketMap.remove(stamp);
-    log("send client frame: " + FrameType::ERROR);
-    clientPortListener->sendFrame(clientSocketMap[stamp],makeClientFrame(FrameType::ERROR, QStringList() << r.msg[3]));
+    if (responseNumMap.contains(stamp)){
+         log("received ERROR (db operation not completed) from: " + QString::number(sender) + "time stamp: " +  QString::number(stamp));
+         checkAllReceived(responseFrameMap[stamp],stamp);
+    }
+    //responseNumMap.remove(stamp);
+    //clientSocketMap.remove(stamp);
+    //log("send client frame: " + FrameType::ERROR);
+    //clientPortListener->sendFrame(clientSocketMap[stamp],makeClientFrame(FrameType::ERROR, QStringList() << r.msg[3]));
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     frameDBRecivedError(r.msg[3], servers[sender].getIp());
 }
@@ -544,6 +560,7 @@ void dbServer::checkAllReceived(QString frameType, int stamp){
         log("send client frame: " + frameType + ", OK");
         clientPortListener->sendFrame(clientSocketMap[stamp],makeClientFrame(frameType,QStringList() << "OK"));
         responseNumMap.remove(stamp);
+        responseFrameMap.remove(stamp);
         clientSocketMap.remove(stamp);
     }
     else{
@@ -724,10 +741,11 @@ void dbServer::sendErrorFrame(LamportRequest& r, int sender, int errorCode){
     if (sender == 0){
         log("send client frame: " + FrameType::ERROR);
         clientPortListener->sendFrame(clientSocketMap[r.time],makeClientFrame(FrameType::ERROR, QStringList() << QString(errorCode)));
+        responseFrameMap.remove(r.time);
         responseNumMap.remove(r.time);
         clientSocketMap.remove(r.time);
     } else {
-        dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::ERROR << QString(errorCode) << QString::number(r.time),lockalTime));
+        dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(QStringList() << FrameType::ERROR << QString(errorCode) << QString::number(r.time),localTime));
     }
 }
 
