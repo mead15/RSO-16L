@@ -13,13 +13,15 @@ dbServer::dbServer(int extPort, int dbPort, int clientPort){
 
     QObject::connect(extPortListener, SIGNAL(log(QString)), this, SLOT(log(QString)));
     QObject::connect(extPortListener, SIGNAL(frameContent(QTcpSocket*,QStringList)), this, SLOT(frameExtRecived(QTcpSocket*,QStringList)));
-    //QObject::connect(extPortListener, SIGNAL(error(QString)), this, SLOT(frameExtRecived(QTcpSocket*,QStringList)));
+    QObject::connect(extPortListener, SIGNAL(error(QString, QString)), this, SLOT(frameExtRecivedError(QString,QString)));
 
     QObject::connect(dbPortListener, SIGNAL(log(QString)), this, SLOT(log(QString)));
     QObject::connect(dbPortListener, SIGNAL(frameContent(QTcpSocket*,QStringList)), this, SLOT(frameDBRecived(QTcpSocket*,QStringList)));
+    QObject::connect(dbPortListener, SIGNAL(error(QString, QString)), this, SLOT(frameDBRecivedError(QString,QString)));
 
     QObject::connect(clientPortListener, SIGNAL(log(QString)), this, SLOT(log(QString)));
     QObject::connect(clientPortListener, SIGNAL(frameContent(QTcpSocket*,QStringList)), this, SLOT(frameClientRecived(QTcpSocket*,QStringList)));
+    QObject::connect(clientPortListener, SIGNAL(error(QString, QString)), this, SLOT(frameClientRecivedError(QString,QString)));
 
     dbFunctionMap[FrameType::STATUS] = &dbServer::status;
     dbFunctionMap[FrameType::SERVER_STATUS_OK] = &dbServer::statusOK;
@@ -187,6 +189,9 @@ void dbServer::frameExtRecivedError(QString error, QString ip){
 
 void dbServer::frameDBRecivedError(QString error, QString ip){
     log("db error: " + error + " " + ip);
+    if(isMasterCandidate){
+        elecErrorCnt++;
+    }
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
         if(i.value().getIp()==ip && i.value().isActive()){
@@ -249,8 +254,10 @@ void dbServer::masterAction(){
     else{
         log("i am not master");
         if(lastBeingAskedTime.secsTo(QTime::currentTime())> 2 * Configuration::getInstance().interval()){
-            log("DBServers:: NO master!");
-            startElection();
+            if(!isMasterCandidate) {
+                log("DBServers:: NO master!");
+                startElection();
+            }
         }
     }
     if(isMasterCandidate){
@@ -267,7 +274,7 @@ void dbServer::masterAction(){
 }
 
 void dbServer::startElection(){
-    log("ExtServers:: START ELECTION!");
+    log("DBServers:: START ELECTION!");
     QVector<int> active = Configuration::getInstance().getActiveDBServers();
     //if(active.size() == 1){
     //    Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
@@ -276,15 +283,16 @@ void dbServer::startElection(){
     //}
     QVector<SServer> serversUnder = Configuration::getInstance().getDBServersUnderMe();
     if(serversUnder.isEmpty()){
-        log("ExtServers:: server under is empty");
+        log("DBServers:: server under is empty");
         Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
         this->sendNewMasterToAll();
+        isMasterCandidate = false;
         elecErrorCnt = 0;
     } else {
         isMasterCandidate = true;
         for (auto it = serversUnder.begin(); it!=serversUnder.end(); it++){
             SServer srv = *it;
-            log("ExtServers:: send election to !" + QString::number(srv.getNum()));
+            log("DBServers:: send election to !" + QString::number(srv.getNum()));
             dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortDB(), makeFrame(FrameType::ELECTION));
         }
     }
@@ -300,6 +308,7 @@ void dbServer::askForState(){
             dbPortListener->sendFrame(QHostAddress(i.value().getIp()), i.value().getPortDB(), makeFrame(FrameType::STATUS));
         }
     }
+    lastAskingTime = QTime::currentTime();
 }
 
 
@@ -327,7 +336,7 @@ void dbServer::sendDBStateToAll(){
 }
 
 void dbServer::sendNewMasterToAll(){
-    log("ExtServers:: NEW Master! -> " + QString::number(Configuration::getInstance().myNum()));
+    log("DBServers:: NEW Master! -> " + QString::number(Configuration::getInstance().myNum()));
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
     for (auto i = servers.begin(); i!=servers.end(); i++){
         if(i.value().getNum()!=Configuration::getInstance().myNum()){
@@ -338,8 +347,9 @@ void dbServer::sendNewMasterToAll(){
 }
 
 void dbServer::electionStop(Request& r, int sender){
-    log("ExtServers:: Election Stop!");
+    log("DBServers:: Election Stop!");
     isMasterCandidate = false;
+    elecErrorCnt = 0;
 }
 
 QStringList dbServer::makeFrame(QStringList data, int timeStamp){
@@ -363,7 +373,9 @@ QStringList dbServer::makeClientFrame(QString frameType){
 }
 
 void dbServer::status(Request& r, int sender){
-    log("send statos ok to " + QString::number(sender));
+    log("master asked if i am ok");
+    lastBeingAskedTime = QTime::currentTime();
+    log("send him ok");
     dbPortListener->sendFrame(QHostAddress(Configuration::getInstance().getDBServer(sender).getIp()), Configuration::getInstance().getDBServer(sender).getPortDB(), makeFrame(FrameType::SERVER_STATUS_OK));
     if(Configuration::getInstance().isMaster()){
         log("new master " + QString::number(sender));

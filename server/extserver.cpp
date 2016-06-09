@@ -188,8 +188,10 @@ void extServer::masterAction(){
     else{
         log("i am not master");
         if(lastBeingAskedTime.secsTo(QTime::currentTime())> 2 * Configuration::getInstance().interval()){
-            log("ExtServers:: NO master!");
-            startElection();
+            if(!isMasterCandidate){
+                log("ExtServers:: NO master!");
+                startElection();
+            }
         }
     }
     if(isMasterCandidate){
@@ -219,6 +221,7 @@ void extServer::startElection(){
         Configuration::getInstance().setMaster(Configuration::getInstance().myNum());
         this->sendNewMasterToAll();
         elecErrorCnt = 0;
+        isMasterCandidate = false;
     } else {
         isMasterCandidate = true;
         for (auto it = serversUnder.begin(); it!=serversUnder.end(); it++){
