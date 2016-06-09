@@ -252,7 +252,6 @@ void extServer::askDBForState(){
         int dbServer_nb = randInt(1, servers.size());
         SServer srv = servers[dbServer_nb];
         log("Send to dbserver" + QString::number(srv.getNum()) + " " + srv.getIp());
-        //log("send " + result.join(",") + " to " + QString::number(srv.getNum()));
         dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_ACTIVE_SERVERS_DB));
 }
 
@@ -438,6 +437,8 @@ void extServer::getAvailableResults(Request& r, int sender){
     //send to random active DBServer
     QVector<int> active = Configuration::getInstance().getActiveDBServers();
     if(!active.isEmpty()){
+        //przy przekazywaniu ramki od klienta do serwera danych
+        //sprawdzić czy nie (1,active.size()) Tak mi poprawnie zadziałało przy askDBForState
         int dbServer_nb = randInt(0, active.size()-1);
         QStringList result;
         result << currTime;
@@ -464,6 +465,8 @@ void extServer::getResult(Request& r, int sender){
     //send to random active DBServer
     QVector<int> active = Configuration::getInstance().getActiveDBServers();
     if(!active.isEmpty()){
+        //przy przekazywaniu ramki od klienta do serwera danych
+        //sprawdzić czy nie (1,active.size()) Tak mi poprawnie zadziałało przy askDBForState
         int dbServer_nb = randInt(0, active.size()-1);
         QStringList result;
         result << currTime;
@@ -490,6 +493,8 @@ void extServer::getStatistics(Request& r, int sender){
     //send to random active DBServer
     QVector<int> active = Configuration::getInstance().getActiveDBServers();
     if(!active.isEmpty()){
+        //przy przekazywaniu ramki od klienta do serwera danych
+        //sprawdzić czy nie (1,active.size()) Tak mi poprawnie zadziałało przy askDBForState
         int dbServer_nb = randInt(0, active.size()-1);
         QStringList result;
         result << currTime;
