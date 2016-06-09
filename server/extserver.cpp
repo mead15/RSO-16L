@@ -246,8 +246,9 @@ void extServer::askDBForState(){
     log("ExtServers:: SEND GET_AVAIALBLE_SERVERS_TO to random DBServer");
     QMap<int, SServer> servers = Configuration::getInstance().getDBServers();
 
-        int dbServer_nb = randInt(0, servers.size()-1);
+        int dbServer_nb = randInt(1, servers.size());
         SServer srv = servers[dbServer_nb];
+        log("Send to dbserver" + QString::number(srv.getNum()) + " " + srv.getIp());
         //log("send " + result.join(",") + " to " + QString::number(srv.getNum()));
         dbPortListener->sendFrame(QHostAddress(srv.getIp()), srv.getPortExt(), makeFrame(FrameType::GET_ACTIVE_SERVERS_DB));
 }
